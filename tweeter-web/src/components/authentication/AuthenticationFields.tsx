@@ -1,5 +1,6 @@
 interface AuthenticationFieldsProps {
-    onEnter: (event: React.KeyboardEvent<HTMLElement>) => void;
+    doOnEnter: () => void;
+    checkSubmitButtonStatus: () => boolean;
     setAlias: (value: string) => void;
     setPassword: (value: string) => void;
     setFirstName?: (value: string) => void;
@@ -9,7 +10,8 @@ interface AuthenticationFieldsProps {
 }
 
 export default function AuthenticationFields({ 
-    onEnter, 
+    doOnEnter, 
+    checkSubmitButtonStatus,
     setAlias, 
     setPassword, 
     setFirstName, 
@@ -17,6 +19,13 @@ export default function AuthenticationFields({
     handleFileChange, 
     imageUrl, 
 }: AuthenticationFieldsProps) {
+    const OnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
+    if (event.key == "Enter" && !checkSubmitButtonStatus()) {
+        doOnEnter();
+    }
+    };
+
+    
     return (
         <>
         {setFirstName && setLastName && (
@@ -28,7 +37,7 @@ export default function AuthenticationFields({
                     size={50}
                     id="firstNameInput"
                     placeholder="First Name"
-                    onKeyDown={onEnter}
+                    onKeyDown={OnEnter}
                     onChange={(event) => setFirstName(event.target.value)}
                 />
                 <label htmlFor="firstNameInput">First Name</label>
@@ -40,7 +49,7 @@ export default function AuthenticationFields({
                     size={50}
                     id="lastNameInput"
                     placeholder="Last Name"
-                    onKeyDown={onEnter}
+                    onKeyDown={OnEnter}
                     onChange={(event) => setLastName(event.target.value)}
                 />
                 <label htmlFor="lastNameInput">Last Name</label>
@@ -55,7 +64,7 @@ export default function AuthenticationFields({
             size={50}
             id="aliasInput"
             placeholder="name@example.com"
-            onKeyDown={onEnter}
+            onKeyDown={OnEnter}
             onChange={(event) => setAlias(event.target.value)}
           />
           <label htmlFor="aliasInput">Alias</label>
@@ -66,7 +75,7 @@ export default function AuthenticationFields({
             className="form-control"
             id="passwordInput"
             placeholder="Password"
-            onKeyDown={onEnter}
+            onKeyDown={OnEnter}
             onChange={(event) => setPassword(event.target.value)}
           />
           <label htmlFor="passwordInput">Password</label>
@@ -79,7 +88,7 @@ export default function AuthenticationFields({
                 type="file"
                 className="d-inline-block py-5 px-4 form-control bottom"
                 id="imageFileInput"
-                onKeyDown={onEnter}
+                onKeyDown={OnEnter}
                 onChange={handleFileChange}
             />
             {imageUrl.length > 0 && (

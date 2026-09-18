@@ -37,12 +37,6 @@ const Register = () => {
     );
   };
 
-  const registerOnEnter = (event: React.KeyboardEvent<HTMLElement>) => {
-    if (event.key == "Enter" && !checkSubmitButtonStatus()) {
-      doRegister();
-    }
-  };
-
   const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     handleImageFile(file);
@@ -135,7 +129,8 @@ const Register = () => {
   const inputFieldFactory = () => {
     return (
       <AuthenticationFields
-        onEnter={registerOnEnter}
+        doOnEnter={doRegister}
+        checkSubmitButtonStatus={checkSubmitButtonStatus}
         setFirstName={setFirstName}
         setLastName={setLastName}
         setAlias={setAlias}

@@ -13,7 +13,12 @@ import StatusItem from "../statusItem/StatusItem";
 
 export const PAGE_SIZE = 10;
 
-const StoryScroller = () => {
+interface Props {
+  itemDescription: string;
+  featureUrlPath: string;
+  loadMore: (authToken: AuthToken, userAlias: string, pageSize: number, lastItem: Status | null) => Promise<[Status[], boolean]>;
+}
+const StatusItemScroller = (props: Props) => {
   const { displayToast } = useContext(ToastActionsContext);
   const [items, setItems] = useState<Status[]>([]);
   const [hasMoreItems, setHasMoreItems] = useState(true);
@@ -56,7 +61,7 @@ const StoryScroller = () => {
 
   const loadMoreItems = async (lastItem: Status | null) => {
     try {
-      const [newItems, hasMore] = await loadMoreStoryItems(
+      const [newItems, hasMore] = await props.loadMore(
         authToken!,
         displayedUser!.alias,
         PAGE_SIZE,
@@ -69,20 +74,10 @@ const StoryScroller = () => {
     } catch (error) {
       displayToast(
         ToastType.Error,
-        `Failed to load story items because of exception: ${error}`,
+        `Failed to load ${props.itemDescription} items because of exception: ${error}`,
         0
       );
     }
-  };
-
-  const loadMoreStoryItems = async (
-    authToken: AuthToken,
-    userAlias: string,
-    pageSize: number,
-    lastItem: Status | null
-  ): Promise<[Status[], boolean]> => {
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.getPageOfStatuses(lastItem, pageSize);
   };
 
   const navigateToUser = async (event: React.MouseEvent): Promise<void> => {
@@ -96,7 +91,7 @@ const StoryScroller = () => {
       if (toUser) {
         if (!toUser.equals(displayedUser!)) {
           setDisplayedUser(toUser);
-          navigate(`/story/${toUser.alias}`);
+          navigate(`${props.featureUrlPath}/${toUser.alias}`);
         }
       }
     } catch (error) {
@@ -135,7 +130,7 @@ const StoryScroller = () => {
             key={index}
             className="row mb-3 mx-0 px-0 border rounded bg-white"
           >
-            <StatusItem item={item} featurePath="/story" navigateToUser={navigateToUser} />
+            <StatusItem item={item} featurePath={props.featureUrlPath} navigateToUser={navigateToUser} />
           </div>
         ))}
       </InfiniteScroll>
@@ -143,4 +138,4 @@ const StoryScroller = () => {
   );
 };
 
-export default StoryScroller;
+export default StatusItemScroller;

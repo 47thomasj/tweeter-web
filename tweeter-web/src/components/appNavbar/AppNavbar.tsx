@@ -8,7 +8,7 @@ import { Container, Nav, Navbar } from "react-bootstrap";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import Image from "react-bootstrap/Image";
 import { AuthToken } from "tweeter-shared";
-import useMessageActions from "../toaster/MessageHooks";
+import { useMessageActions } from "../toaster/MessageHooks";
 
 const AppNavbar = () => {
   const location = useLocation();

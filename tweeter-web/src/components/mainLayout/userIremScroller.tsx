@@ -7,7 +7,7 @@ import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { AuthToken, FakeData, User } from "tweeter-shared";
 import { useParams } from "react-router-dom";
-import useMessageActions from "../toaster/MessageHooks";
+import { useMessageActions } from "../toaster/MessageHooks";
 import UserItem from "../userItem/UserItem";
 
 export const PAGE_SIZE = 10;

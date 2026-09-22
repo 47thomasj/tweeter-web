@@ -8,7 +8,7 @@ import { useState, useEffect } from "react";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { useNavigate, useParams } from "react-router-dom";
 import StatusItem from "../statusItem/StatusItem";
-import useMessageActions from "../toaster/MessageHooks";
+import { useMessageActions } from "../toaster/MessageHooks";
 
 export const PAGE_SIZE = 10;
 

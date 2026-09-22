@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import { ToastActionsContext } from "./ToastContexts";
+import { ToastActionsContext, ToastListContext } from "./ToastContexts";
 import { ToastType } from "./Toast";
 
 interface messageActions {
@@ -16,7 +16,7 @@ interface messageActions {
     deleteAllMessages: () => void,
 };
 
-export default function useMessageActions(): messageActions {
+export function useMessageActions(): messageActions {
     const { displayToast, deleteToast, deleteAllToasts } = useContext(ToastActionsContext);
     
     return {
@@ -33,4 +33,8 @@ export default function useMessageActions(): messageActions {
             return deleteAllToasts();
         },
     };
+}
+
+export function useMessageList() {
+    return useContext(ToastListContext);
 }

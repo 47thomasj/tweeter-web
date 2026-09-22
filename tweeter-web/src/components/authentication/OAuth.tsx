@@ -1,7 +1,7 @@
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { IconName } from "@fortawesome/fontawesome-svg-core";
 import { OverlayTrigger, Tooltip } from "react-bootstrap";
-import useMessageActions from "../toaster/MessageHooks";
+import { useMessageActions } from "../toaster/MessageHooks";
 
 export default function OAuth() {
     const { displayInfoMessage } = useMessageActions();

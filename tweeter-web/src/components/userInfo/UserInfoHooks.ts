@@ -14,13 +14,7 @@ interface UserInfoActions {
 }
   
 export function useUserInfoActions(): UserInfoActions {
-    const { updateUserInfo, clearUserInfo, setDisplayedUser } = useContext(UserInfoActionsContext);
-
-    return {
-        updateUserInfo: (currentUser: User, displayedUser: User | null, authToken: AuthToken, remember: boolean) => updateUserInfo(currentUser, displayedUser, authToken, remember),
-        clearUserInfo: () => clearUserInfo(),
-        setDisplayedUser: (user: User) => setDisplayedUser(user),
-    }
+    return useContext(UserInfoActionsContext);
 }
 
 export function useUserInfo() {

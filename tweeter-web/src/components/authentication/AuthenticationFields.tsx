@@ -81,7 +81,7 @@ export default function AuthenticationFields({
           <label htmlFor="passwordInput">Password</label>
         </div>
 
-        {handleFileChange && imageUrl && (
+        {handleFileChange && (
             <>
             <div className="form-floating mb-3">
             <input
@@ -91,7 +91,7 @@ export default function AuthenticationFields({
                 onKeyDown={OnEnter}
                 onChange={handleFileChange}
             />
-            {imageUrl.length > 0 && (
+            {imageUrl && imageUrl.length > 0 && (
                 <>
                 <label htmlFor="imageFileInput">User Image</label>
                 <img src={imageUrl} className="img-thumbnail" alt=""></img>

@@ -4,7 +4,6 @@ import { UserService } from "../model.service/UserService";
 export interface StatusItemView {
   addItems: (items: Status[]) => void;
   displayErrorMessage: (message: string) => void;
-  itemFactory: (item: any) => React.ReactNode;
 }
 export abstract class StatusItemPresenter {
   private _hasMoreItems: boolean = true;

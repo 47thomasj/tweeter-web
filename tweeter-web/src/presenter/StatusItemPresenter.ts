@@ -1,19 +1,19 @@
-import { AuthToken, User } from "tweeter-shared";
+import { AuthToken, Status, User } from "tweeter-shared";
 import { UserService } from "../model.service/UserService";
 
-export interface ItemView {
-  addItems: (items: User[]) => void;
+export interface StatusItemView {
+  addItems: (items: Status[]) => void;
   displayErrorMessage: (message: string) => void;
   itemFactory: (item: any) => React.ReactNode;
 }
-export abstract class ItemPresenter {
+export abstract class StatusItemPresenter {
   private _hasMoreItems: boolean = true;
-  private _lastItem: User | null = null;
+  private _lastItem: Status | null = null;
 
-  private _view: ItemView;
+  private _view: StatusItemView;
   private userService: UserService;
 
-  protected constructor(view: ItemView) {
+  protected constructor(view: StatusItemView) {
     this._view = view;
     this.userService = new UserService();
   }
@@ -21,17 +21,17 @@ export abstract class ItemPresenter {
   public get hasMoreItems(): boolean {
     return this._hasMoreItems;
   }
-  protected get view(): ItemView {
+  protected get view(): StatusItemView {
     return this._view;
   }
-  protected get lastItem(): User | null {
+  protected get lastItem(): Status | null {
     return this._lastItem;
   }
 
   protected set hasMoreItems(value: boolean) {
     this._hasMoreItems = value;
   }
-  protected set lastItem(value: User | null) {
+  protected set lastItem(value: Status | null) {
     this._lastItem = value;
   }
 

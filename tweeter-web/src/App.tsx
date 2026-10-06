@@ -12,9 +12,9 @@ import Register from "./components/authentication/register/Register";
 import MainLayout from "./components/mainLayout/MainLayout";
 import Toaster from "./components/toaster/Toaster";
 import StatusItemScroller from "./components/mainLayout/StatusItemScroller";
-import ItemScroller from "./components/mainLayout/ItemScroller";
+import UserItemScroller from "./components/mainLayout/UserItemScroller";
 import { FolloweePresenter } from "./presenter/FolloweePresenter";
-import { ItemView } from "./presenter/ItemPresenter";
+import { UserItemView } from "./presenter/UserItemPresenter";
 import { FollowerPresenter } from "./presenter/FollowerPresenter";
 
 const App = () => {
@@ -73,10 +73,10 @@ const AuthenticatedRoutes = () => {
         <Route
           path="followees/:displayedUser"
           element={
-            <ItemScroller
+            <UserItemScroller
               key={`followees-${displayedUser!.alias}`}
               featureUrlPath="/followees"
-              presenterFactory={(view: ItemView) =>
+              presenterFactory={(view: UserItemView) =>
                 new FolloweePresenter(view)
               }
             />
@@ -85,10 +85,10 @@ const AuthenticatedRoutes = () => {
         <Route
           path="followers/:displayedUser"
           element={
-            <ItemScroller
+            <UserItemScroller
               key={`followers-${displayedUser!.alias}`}
               featureUrlPath="/followers"
-              presenterFactory={(view: ItemView) =>
+              presenterFactory={(view: UserItemView) =>
                 new FollowerPresenter(view)
               }
             />

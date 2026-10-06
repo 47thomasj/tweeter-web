@@ -1,18 +1,19 @@
 import { AuthToken, User } from "tweeter-shared";
 import { UserService } from "../model.service/UserService";
 
-export interface UserItemView {
+export interface ItemView {
   addItems: (items: User[]) => void;
   displayErrorMessage: (message: string) => void;
+  itemFactory: (item: any) => React.ReactNode;
 }
-export abstract class UserItemPresenter {
+export abstract class ItemPresenter {
   private _hasMoreItems: boolean = true;
   private _lastItem: User | null = null;
 
-  private _view: UserItemView;
+  private _view: ItemView;
   private userService: UserService;
 
-  protected constructor(view: UserItemView) {
+  protected constructor(view: ItemView) {
     this._view = view;
     this.userService = new UserService();
   }
@@ -20,7 +21,7 @@ export abstract class UserItemPresenter {
   public get hasMoreItems(): boolean {
     return this._hasMoreItems;
   }
-  protected get view(): UserItemView {
+  protected get view(): ItemView {
     return this._view;
   }
   protected get lastItem(): User | null {

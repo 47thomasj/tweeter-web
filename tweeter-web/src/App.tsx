@@ -13,12 +13,14 @@ import MainLayout from "./components/mainLayout/MainLayout";
 import Toaster from "./components/toaster/Toaster";
 import StatusItemScroller from "./components/mainLayout/StatusItemScroller";
 import UserItemScroller from "./components/mainLayout/UserItemScroller";
-import { FolloweePresenter } from "./presenter/FolloweePresenter";
-import { UserItemView } from "./presenter/UserItemPresenter";
-import { FollowerPresenter } from "./presenter/FollowerPresenter";
+import { FolloweePresenter } from "./presenter/userItemPresenter/FolloweePresenter";
+import { UserItemView } from "./presenter/userItemPresenter/UserItemPresenter";
+import { FollowerPresenter } from "./presenter/userItemPresenter/FollowerPresenter";
 import { StoryPresenter } from "./presenter/statusItemPresenter/StoryPresenter";
-import { FeedPresenter } from "./presenter/FeedPresenter";
-import { StatusItemView } from "./presenter/StatusItemPresenter";
+import { FeedPresenter } from "./presenter/statusItemPresenter/FeedPresenter";
+import { StatusItemView } from "./presenter/statusItemPresenter/StatusItemPresenter";
+import { LoginPresenter } from "./presenter/authPresenter/LoginPresenter";
+import { AuthView } from "./presenter/authPresenter/AuthPresenter";
 
 const App = () => {
   const { currentUser, authToken } = useUserInfo();
@@ -114,9 +116,25 @@ const UnauthenticatedRoutes = () => {
 
   return (
     <Routes>
-      <Route path="/login" element={<Login />} />
+      <Route
+        path="/login"
+        element={
+          <Login
+            presenterFactory={(view: AuthView) => new LoginPresenter(view)}
+          />
+        }
+      />
       <Route path="/register" element={<Register />} />
-      <Route path="*" element={<Login originalUrl={location.pathname} />} />
+      <Route
+        path="*"
+        element={
+          <Login
+            presenterFactory={(view: AuthView) =>
+              new LoginPresenter(view, location.pathname)
+            }
+          />
+        }
+      />
     </Routes>
   );
 };

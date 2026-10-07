@@ -8,11 +8,11 @@ import UserItem from "../userItem/UserItem";
 import {
   UserItemPresenter,
   UserItemView,
-} from "../../presenter/UserItemPresenter";
+} from "../../presenter/userItemPresenter/UserItemPresenter";
 
 interface Props {
   featureUrlPath: string;
-  presenterFactory: (listener: UserItemView) => UserItemPresenter;
+  presenterFactory: (view: UserItemView) => UserItemPresenter;
 }
 export default function UserItemScroller(props: Props) {
   const { displayErrorMessage } = useMessageActions();

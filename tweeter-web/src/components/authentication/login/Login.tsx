@@ -1,15 +1,16 @@
 import "./Login.css";
 import "bootstrap/dist/css/bootstrap.css";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import AuthenticationFormLayout from "../AuthenticationFormLayout";
-import { AuthToken, FakeData, User } from "tweeter-shared";
 import AuthenticationFields from "../AuthenticationFields";
 import { useMessageActions } from "../../toaster/MessageHooks";
 import { useUserInfoActions } from "../../userInfo/UserInfoHooks";
+import { AuthView, AuthPresenter } from "../../../presenter/authPresenter/AuthPresenter";
 
 interface Props {
   originalUrl?: string;
+  presenterFactory: (view: AuthView) => AuthPresenter;
 }
 
 const Login = (props: Props) => {
@@ -25,6 +26,14 @@ const Login = (props: Props) => {
   const checkSubmitButtonStatus = (): boolean => {
     return !alias || !password;
   };
+
+  const listener: AuthView = {
+  };
+
+  const presenterRef = useRef<AuthPresenter | null>(null);
+  if (!presenterRef.current) {
+    presenterRef.current = props.presenterFactory(listener);
+  }
 
   const doLogin = async () => {
     try {
@@ -46,20 +55,6 @@ const Login = (props: Props) => {
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const login = async (
-    alias: string,
-    password: string
-  ): Promise<[User, AuthToken]> => {
-    // TODO: Replace with the result of calling the server
-    const user = FakeData.instance.firstUser;
-
-    if (user === null) {
-      throw new Error("Invalid alias or password");
-    }
-
-    return [user, FakeData.instance.authToken];
   };
 
   const inputFieldFactory = () => {

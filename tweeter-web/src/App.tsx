@@ -16,7 +16,7 @@ import UserItemScroller from "./components/mainLayout/UserItemScroller";
 import { FolloweePresenter } from "./presenter/FolloweePresenter";
 import { UserItemView } from "./presenter/UserItemPresenter";
 import { FollowerPresenter } from "./presenter/FollowerPresenter";
-import { StoryPresenter } from "./presenter/StoryPresenter";
+import { StoryPresenter } from "./presenter/statusItemPresenter/StoryPresenter";
 import { FeedPresenter } from "./presenter/FeedPresenter";
 import { StatusItemView } from "./presenter/StatusItemPresenter";
 

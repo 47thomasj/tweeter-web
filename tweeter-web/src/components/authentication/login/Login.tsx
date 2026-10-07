@@ -22,6 +22,8 @@ const Login = (props: Props) => {
   const { updateUserInfo } = useUserInfoActions();
   const { displayErrorMessage } = useMessageActions();
   const navigate = useNavigate();
+  
+  //TODO: Move to presenter
   const checkSubmitButtonStatus = (): boolean => {
     return !alias || !password;
   };

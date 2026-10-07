@@ -39,6 +39,8 @@ const PostStatus = () => {
     }
   };
 
+
+  //TODO: Move to service/presenter
   const postStatus = async (
     authToken: AuthToken,
     newStatus: Status,

@@ -116,6 +116,7 @@ export class UserInfoPresenter {
     }
   }
 
+  //TODO: Move to service
   private async _follow(
     authToken: AuthToken,
     userToFollow: User,

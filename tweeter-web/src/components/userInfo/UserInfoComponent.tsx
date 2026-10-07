@@ -38,7 +38,6 @@ const UserInfo = () => {
     presenterRef.current!.setIsFollowerStatus(authToken!, currentUser!, displayedUser!);
     presenterRef.current!.setNumbFollowees(authToken!, displayedUser!);
     presenterRef.current!.setNumbFollowers(authToken!, displayedUser!);
-    presenterRef.current!.setNumbFollowers(authToken!, displayedUser!);
   }, [displayedUser]);
 
 

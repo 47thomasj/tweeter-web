@@ -21,6 +21,7 @@ import { FeedPresenter } from "./presenter/statusItemPresenter/FeedPresenter";
 import { StatusItemView } from "./presenter/statusItemPresenter/StatusItemPresenter";
 import { LoginPresenter } from "./presenter/authPresenter/LoginPresenter";
 import { AuthView } from "./presenter/authPresenter/AuthPresenter";
+import { RegisterView, RegisterPresenter } from "./presenter/authPresenter/RegisterPresenter";
 
 const App = () => {
   const { currentUser, authToken } = useUserInfo();
@@ -124,7 +125,16 @@ const UnauthenticatedRoutes = () => {
           />
         }
       />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/register"
+        element={
+          <Register
+            presenterFactory={(view: RegisterView) =>
+              new RegisterPresenter(view)
+            }
+          />
+        }
+      />
       <Route
         path="*"
         element={

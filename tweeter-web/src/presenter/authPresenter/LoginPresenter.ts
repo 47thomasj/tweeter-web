@@ -5,7 +5,7 @@ export class LoginPresenter extends AuthPresenter {
     super(view, originalUrl);
   }
 
-  public async login(alias: string, password: string): Promise<void> {
+  public async doAuth(alias: string, password: string): Promise<void> {
     try {
       this.isLoading = true;
       const [user, authToken] = await this.authService.login(alias, password);

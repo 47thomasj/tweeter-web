@@ -38,7 +38,7 @@ const Login = (props: Props) => {
   }
 
   const doLogin = async () => {
-    await presenterRef.current!.login(alias, password);
+    await presenterRef.current!.doAuth(alias, password);
   };
 
   const inputFieldFactory = () => {

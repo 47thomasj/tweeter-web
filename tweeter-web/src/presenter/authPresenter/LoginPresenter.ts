@@ -25,4 +25,8 @@ export class LoginPresenter extends AuthPresenter {
       this.view.setIsLoading(false);
     }
   }
+
+  public checkSubmitButtonStatus(alias: string, password: string): boolean {
+    return !alias || !password;
+  };
 }

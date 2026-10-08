@@ -22,12 +22,7 @@ const Login = (props: Props) => {
 
   const { updateUserInfo } = useUserInfoActions();
   const { displayErrorMessage } = useMessageActions();
-  const navigate = useNavigate();
-  
-  //TODO: Move to presenter
-  const checkSubmitButtonStatus = (): boolean => {
-    return !alias || !password;
-  };
+  const navigate = useNavigate();  
 
   const listener: AuthView = {
     updateUserInfo: (user: User, authToken: AuthToken) => updateUserInfo(user, user, authToken, rememberMe),
@@ -41,15 +36,11 @@ const Login = (props: Props) => {
     presenterRef.current = props.presenterFactory(listener);
   }
 
-  const doLogin = async () => {
-    await presenterRef.current!.doAuth(alias, password);
-  };
-
   const inputFieldFactory = () => {
     return (
       <AuthenticationFields
-        doOnEnter={doLogin}
-        checkSubmitButtonStatus={checkSubmitButtonStatus}
+        doOnEnter={() => presenterRef.current!.doAuth(alias, password)}
+        checkSubmitButtonStatus={() => presenterRef.current!.checkSubmitButtonStatus(alias, password)}
         setAlias={setAlias}
         setPassword={setPassword}
       />          
@@ -72,9 +63,9 @@ const Login = (props: Props) => {
       inputFieldFactory={inputFieldFactory}
       switchAuthenticationMethodFactory={switchAuthenticationMethodFactory}
       setRememberMe={setRememberMe}
-      submitButtonDisabled={checkSubmitButtonStatus}
+      submitButtonDisabled={() => presenterRef.current!.checkSubmitButtonStatus(alias, password)}
       isLoading={loading}
-      submit={doLogin}
+      submit={() => presenterRef.current!.doAuth(alias, password)}
     />
   );
 };

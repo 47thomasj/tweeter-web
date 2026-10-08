@@ -94,7 +94,7 @@ export class UserInfoPresenter {
         0,
       );
 
-      const [followerCount, followeeCount] = await this._follow(
+      const [followerCount, followeeCount] = await this.userService.follow(
         this._authToken!,
         displayedUser,
       );
@@ -110,29 +110,7 @@ export class UserInfoPresenter {
       this.view.deleteMessage(followingUserToast);
       this.view.setIsLoading(false);
     }
-  }
-
-  //TODO: Move to service
-  private async _follow(
-    authToken: AuthToken,
-    userToFollow: User,
-  ): Promise<[followerCount: number, followeeCount: number]> {
-    // Pause so we can see the follow message. Remove when connected to the server
-    await new Promise((f) => setTimeout(f, 2000));
-
-    // TODO: Call the server
-
-    const followerCount = await this.userService.getFollowerCount(
-      authToken,
-      userToFollow,
-    );
-    const followeeCount = await this.userService.getFolloweeCount(
-      authToken,
-      userToFollow,
-    );
-
-    return [followerCount, followeeCount];
-  }
+  } 
 
 
   public _getBaseUrl(): string {

@@ -16,6 +16,8 @@ const UserInfo = () => {
 
   const [isFollower, setIsFollower] = useState(false);
   const [loading, setIsLoading] = useState(false);
+  const [followeeCount, setFolloweeCount] = useState(0);
+  const [followerCount, setFollowerCount] = useState(0);
 
   const listener: UserInfoView = {
     setDisplayedUser: (user: User) => setDisplayedUser(user),
@@ -25,6 +27,8 @@ const UserInfo = () => {
     deleteMessage: (message: string) => deleteMessage(message),
     setIsFollower: (isFollower: boolean) => setIsFollower(isFollower),
     setIsLoading: (isLoading: boolean) => setIsLoading(isLoading),
+    setFollowerCount: (followerCount: number) => setFollowerCount(followerCount),
+    setFolloweeCount: (followeeCount: number) => setFolloweeCount(followeeCount),
   }
 
   const presenterRef = useRef<UserInfoPresenter | null>(null);
@@ -94,9 +98,9 @@ const UserInfo = () => {
               </h2>
               <h3>{displayedUser.alias}</h3>
               <br />
-              {presenterRef.current!.followeeCount > -1 && presenterRef.current!.followerCount > -1 && (
+              {followeeCount > -1 && followerCount > -1 && (
                 <div>
-                  Followees: {presenterRef.current!.followeeCount} Followers: {presenterRef.current!.followerCount}
+                  Followees: {followeeCount} Followers: {followerCount}
                 </div>
               )}
             </div>

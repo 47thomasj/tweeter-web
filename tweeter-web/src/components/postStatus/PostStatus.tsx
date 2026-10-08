@@ -35,10 +35,6 @@ const PostStatus = () => {
     setPost("");
   };
 
-  const checkButtonStatus: () => boolean = () => {
-    return !post.trim() || !authToken || !currentUser || isLoading;
-  };
-
   return (
     <form>
       <div className="form-group mb-3">
@@ -58,7 +54,7 @@ const PostStatus = () => {
           id="postStatusButton"
           className="btn btn-md btn-primary me-1"
           type="button"
-          disabled={checkButtonStatus()}
+          disabled={presenterRef.current!.checkButtonStatus(post, currentUser!, isLoading)}
           style={{ width: "8em" }}
           onClick={submitPost}
         >
@@ -76,7 +72,7 @@ const PostStatus = () => {
           id="clearStatusButton"
           className="btn btn-md btn-secondary"
           type="button"
-          disabled={checkButtonStatus()}
+          disabled={presenterRef.current!.checkButtonStatus(post, currentUser!, isLoading)}
           onClick={clearPost}
         >
           Clear

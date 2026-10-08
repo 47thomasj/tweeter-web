@@ -45,4 +45,8 @@ export class PostPresenter {
       this._view.setIsLoading(false);
     }
   }
+
+  public checkButtonStatus(post: string, currentUser: User, isLoading: boolean): boolean {
+    return !post.trim() || !this._authToken || !currentUser || isLoading;
+  }
 }

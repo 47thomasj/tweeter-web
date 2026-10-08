@@ -37,6 +37,7 @@ const Register = (props: Props) => {
     setImageUrl: setImageUrl,
     setImageBytes: setImageBytes,
     setImageFileExtension: setImageFileExtension,
+    setIsLoading: setIsLoading,
   };
 
   const presenterRef = useRef<RegisterPresenter | null>(null);

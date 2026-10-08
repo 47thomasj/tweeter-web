@@ -7,7 +7,7 @@ export class LoginPresenter extends AuthPresenter {
 
   public async doAuth(alias: string, password: string): Promise<void> {
     try {
-      this.isLoading = true;
+      this.view.setIsLoading(true);
       const [user, authToken] = await this.authService.login(alias, password);
 
       this.view.updateUserInfo(user, authToken);
@@ -22,7 +22,7 @@ export class LoginPresenter extends AuthPresenter {
         `Failed to log user in because of exception: ${error}`,
       );
     } finally {
-      this.isLoading = false;
+      this.view.setIsLoading(false);
     }
   }
 }

@@ -18,6 +18,7 @@ const Login = (props: Props) => {
   const [alias, setAlias] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const { updateUserInfo } = useUserInfoActions();
   const { displayErrorMessage } = useMessageActions();
@@ -32,6 +33,7 @@ const Login = (props: Props) => {
     updateUserInfo: (user: User, authToken: AuthToken) => updateUserInfo(user, user, authToken, rememberMe),
     navigate: (url: string) => navigate(url),
     displayErrorMessage: displayErrorMessage,
+    setIsLoading: (isLoading: boolean) => setLoading(isLoading),
   };
 
   const presenterRef = useRef<AuthPresenter | null>(null);
@@ -71,7 +73,7 @@ const Login = (props: Props) => {
       switchAuthenticationMethodFactory={switchAuthenticationMethodFactory}
       setRememberMe={setRememberMe}
       submitButtonDisabled={checkSubmitButtonStatus}
-      isLoading={presenterRef.current!.isLoading}
+      isLoading={loading}
       submit={doLogin}
     />
   );

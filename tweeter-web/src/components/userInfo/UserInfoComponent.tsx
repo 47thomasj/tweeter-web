@@ -15,6 +15,7 @@ const UserInfo = () => {
   const navigate = useNavigate();
 
   const [isFollower, setIsFollower] = useState(false);
+  const [loading, setIsLoading] = useState(false);
 
   const listener: UserInfoView = {
     setDisplayedUser: (user: User) => setDisplayedUser(user),
@@ -23,6 +24,7 @@ const UserInfo = () => {
     displayErrorMessage: (message: string) => displayErrorMessage(message),
     deleteMessage: (message: string) => deleteMessage(message),
     setIsFollower: (isFollower: boolean) => setIsFollower(isFollower),
+    setIsLoading: (isLoading: boolean) => setIsLoading(isLoading),
   }
 
   const presenterRef = useRef<UserInfoPresenter | null>(null);
@@ -107,10 +109,10 @@ const UserInfo = () => {
                       className="btn btn-md btn-secondary me-1"
                       type="submit"
                       style={{ width: "6em" }}
-                      disabled={presenterRef.current!.isLoading}
+                      disabled={loading}
                       onClick={unfollowDisplayedUser}
                     >
-                      {presenterRef.current!.isLoading ? (
+                      {loading ? (
                         <span
                           className="spinner-border spinner-border-sm"
                           role="status"
@@ -126,10 +128,10 @@ const UserInfo = () => {
                       className="btn btn-md btn-primary me-1"
                       type="submit"
                       style={{ width: "6em" }}
-                      disabled={presenterRef.current!.isLoading}
+                      disabled={loading}
                       onClick={followDisplayedUser}
                     >
-                      {presenterRef.current!.isLoading ? (
+                      {loading ? (
                         <span
                           className="spinner-border spinner-border-sm"
                           role="status"

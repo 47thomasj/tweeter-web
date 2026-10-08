@@ -8,6 +8,7 @@ export interface UserInfoView {
   displayErrorMessage: (message: string) => void;
   deleteMessage: (message: string) => void;
   setIsFollower: (isFollower: boolean) => void;
+  setIsLoading: (isLoading: boolean) => void;
 }
 
 export class UserInfoPresenter {
@@ -17,7 +18,6 @@ export class UserInfoPresenter {
   private _currentUser: User;
   private _authToken: AuthToken;
 
-  private _isLoading: boolean = false;
   private _followerCount: number = 0;
   private _followeeCount: number = 0;
 
@@ -36,14 +36,10 @@ export class UserInfoPresenter {
     return this._followeeCount;
   }
 
-  public get isLoading(): boolean {
-    return this._isLoading;
-  }
-
   public async unfollowUser(displayedUser: User) {
     var unfollowingUserToast = "";
     try {
-      this._isLoading = true;
+      this.view.setIsLoading(true);
       unfollowingUserToast = this.view.displayInfoMessage(
         `Unfollowing ${displayedUser.name}...`,
         0,
@@ -63,7 +59,7 @@ export class UserInfoPresenter {
       );
     } finally {
       this.view.deleteMessage(unfollowingUserToast);
-      this._isLoading = false;
+      this.view.setIsLoading(false);
     }
   }
 
@@ -92,7 +88,7 @@ export class UserInfoPresenter {
     var followingUserToast = "";
 
     try {
-      this._isLoading = true;
+      this.view.setIsLoading(true);
       followingUserToast = this.view.displayInfoMessage(
         `Following ${displayedUser.name}...`,
         0,
@@ -112,7 +108,7 @@ export class UserInfoPresenter {
       );
     } finally {
       this.view.deleteMessage(followingUserToast);
-      this._isLoading = false;
+      this.view.setIsLoading(false);
     }
   }
 

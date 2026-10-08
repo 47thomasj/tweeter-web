@@ -57,7 +57,7 @@ export class RegisterPresenter extends AuthPresenter {
     imageFileExtension: string,
   ) {
     try {
-      this.isLoading = true;
+      this.view.setIsLoading(true);
 
       const [user, authToken] = await this.authService.register(
         firstName,
@@ -75,7 +75,7 @@ export class RegisterPresenter extends AuthPresenter {
         `Failed to register user because of exception: ${error}`,
       );
     } finally {
-      this.isLoading = false;
+      this.view.setIsLoading(false);
     }
   }
 }

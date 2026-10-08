@@ -8,6 +8,7 @@ export interface AuthView {
   setImageUrl?: (url: string) => void;
   setImageBytes?: (bytes: Uint8Array) => void;
   setImageFileExtension?: (extension: string) => void;
+  setIsLoading: (isLoading: boolean) => void;
 }
 
 export abstract class AuthPresenter {
@@ -15,7 +16,6 @@ export abstract class AuthPresenter {
   private _originalUrl: string | undefined;
   protected authService: AuthService;
 
-  private _isLoading: boolean = false;
 
   protected constructor(view: AuthView, originalUrl: string | undefined) {
     this._view = view;
@@ -33,14 +33,6 @@ export abstract class AuthPresenter {
 
   protected set originalUrl(value: string | undefined) {
     this._originalUrl = value;
-  }
-
-  public get isLoading(): boolean {
-    return this._isLoading;
-  }
-
-  protected set isLoading(value: boolean) {
-    this._isLoading = value;
   }
 
   public checkSubmitButtonStatus(

@@ -1,5 +1,7 @@
 import { AuthPresenter, AuthView } from "./AuthPresenter";
 
+//TODO: doAuth can hold more stuff. Navigation, authenticate, etc. 
+
 export class LoginPresenter extends AuthPresenter {
   public constructor(view: AuthView, originalUrl?: string) {
     super(view, originalUrl);

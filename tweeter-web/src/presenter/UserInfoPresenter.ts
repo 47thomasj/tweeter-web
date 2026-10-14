@@ -2,6 +2,8 @@ import { AuthToken, User } from "tweeter-shared";
 import { UserService } from "../model.service/UserService";
 import { Presenter, MessageView } from "./Presenter";
 
+//TODO: Follow and unfollow user are pretty much the same. Can split that out to a helper.
+
 export interface UserInfoView extends MessageView {
   setDisplayedUser: (user: User) => void;
   navigate: (url: string) => void;

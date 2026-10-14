@@ -7,12 +7,12 @@ import { useMessageActions } from "../toaster/MessageHooks";
 import UserItem from "../userItem/UserItem";
 import {
   UserItemPresenter,
-  UserItemView,
 } from "../../presenter/userItemPresenter/UserItemPresenter";
+import { PageItemView } from "../../presenter/PageItemPresenter";
 
 interface Props {
   featureUrlPath: string;
-  presenterFactory: (view: UserItemView) => UserItemPresenter;
+  presenterFactory: (view: PageItemView<User>) => UserItemPresenter;
 }
 export default function UserItemScroller(props: Props) {
   const { displayErrorMessage } = useMessageActions();
@@ -22,7 +22,7 @@ export default function UserItemScroller(props: Props) {
   const { setDisplayedUser } = useUserInfoActions();
   const { displayedUser: displayedUserAliasParam } = useParams();
 
-  const listener: UserItemView = {
+  const listener: PageItemView<User> = {
     addItems: (items: User[]) =>
       setItems((previousItems) => [...previousItems, ...items]),
     displayErrorMessage: displayErrorMessage,

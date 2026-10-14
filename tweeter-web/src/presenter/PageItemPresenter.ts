@@ -17,7 +17,7 @@ export abstract class PageItemPresenter<T, U extends Service> extends Presenter<
   private _hasMoreItems: boolean = true;
   private _lastItem: T | null = null;
 
-  protected constructor(view: PageItemView<T>) {
+  public constructor(view: PageItemView<T>) {
     super(view);
     this.userService = new UserService();
     this._service = this.serviceFactory();

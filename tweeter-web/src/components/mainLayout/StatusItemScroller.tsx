@@ -7,12 +7,12 @@ import { useMessageActions } from "../toaster/MessageHooks";
 import { useUserInfo, useUserInfoActions } from "../userInfo/UserInfoHooks";
 import {
   StatusItemPresenter,
-  StatusItemView,
 } from "../../presenter/statusItemPresenter/StatusItemPresenter";
+import { PageItemView } from "../../presenter/PageItemPresenter";
 
 interface Props {
   featureUrlPath: string;
-  presenterFactory: (view: StatusItemView) => StatusItemPresenter;
+  presenterFactory: (view: PageItemView<Status>) => StatusItemPresenter;
 }
 export default function StatusItemScroller(props: Props) {
   const { displayErrorMessage } = useMessageActions();
@@ -22,7 +22,7 @@ export default function StatusItemScroller(props: Props) {
   const { setDisplayedUser } = useUserInfoActions();
   const { displayedUser: displayedUserAliasParam } = useParams();
 
-  const listener: StatusItemView = {
+  const listener: PageItemView<Status> = {
     addItems: (items: Status[]) =>
       setItems((previousItems) => [...previousItems, ...items]),
     displayErrorMessage: displayErrorMessage,

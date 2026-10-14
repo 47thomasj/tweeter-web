@@ -1,30 +1,25 @@
 import { AuthService } from "../../model.service/AuthService";
 import { AuthToken, User } from "tweeter-shared";
+import { Presenter, View } from "../Presenter";
 
-export interface AuthView {
+export interface AuthView extends View {
   updateUserInfo: (user: User, authToken: AuthToken) => void;
   navigate: (url: string) => void;
-  displayErrorMessage: (message: string) => void;
   setImageUrl?: (url: string) => void;
   setImageBytes?: (bytes: Uint8Array) => void;
   setImageFileExtension?: (extension: string) => void;
   setIsLoading: (isLoading: boolean) => void;
 }
 
-export abstract class AuthPresenter {
-  private _view: AuthView;
+export abstract class AuthPresenter extends Presenter<AuthView> {
   private _originalUrl: string | undefined;
   protected authService: AuthService;
 
 
   protected constructor(view: AuthView, originalUrl: string | undefined) {
-    this._view = view;
+    super(view);
     this.authService = new AuthService();
     this.originalUrl = originalUrl;
-  }
-
-  protected get view(): AuthView {
-    return this._view;
   }
 
   public get originalUrl(): string | undefined {

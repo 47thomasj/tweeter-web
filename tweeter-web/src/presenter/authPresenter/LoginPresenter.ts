@@ -1,4 +1,4 @@
-import { AuthPresenter, AuthView} from "./AuthPresenter";
+import { AuthPresenter, AuthView } from "./AuthPresenter";
 
 export class LoginPresenter extends AuthPresenter {
   public constructor(view: AuthView, originalUrl?: string) {
@@ -6,7 +6,7 @@ export class LoginPresenter extends AuthPresenter {
   }
 
   public async doAuth(alias: string, password: string): Promise<void> {
-    try {
+    await this.doFailureReportingOperation(async () => {
       this.view.setIsLoading(true);
       const [user, authToken] = await this.authService.login(alias, password);
 
@@ -17,16 +17,11 @@ export class LoginPresenter extends AuthPresenter {
       } else {
         this.view.navigate(`/feed/${user.alias}`);
       }
-    } catch (error) {
-      this.view.displayErrorMessage(
-        `Failed to log user in because of exception: ${error}`,
-      );
-    } finally {
-      this.view.setIsLoading(false);
-    }
+    }, "log user in");
+    this.view.setIsLoading(false);
   }
 
   public checkSubmitButtonStatus(alias: string, password: string): boolean {
     return !alias || !password;
-  };
+  }
 }

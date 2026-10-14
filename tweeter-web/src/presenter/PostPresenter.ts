@@ -1,7 +1,8 @@
 import { AuthToken, Status, User } from "tweeter-shared";
 import { StatusService } from "../model.service/StatusService";
+import { Presenter, View } from "./Presenter";
 
-export interface PostView {
+export interface PostView extends View {
   displayErrorMessage: (message: string) => void;
   displayInfoMessage: (message: string, timeout: number) => string;
   deleteMessage: (message: string) => void;
@@ -9,13 +10,12 @@ export interface PostView {
   setPost: (post: string) => void;
 }
 
-export class PostPresenter {
-  private _view: PostView;
+export class PostPresenter extends Presenter<PostView> {
   private _statusService: StatusService;
   private _authToken: AuthToken;
 
   public constructor(view: PostView, authToken: AuthToken) {
-    this._view = view;
+    super(view);
     this._statusService = new StatusService();
     this._authToken = authToken;
   }
@@ -23,9 +23,9 @@ export class PostPresenter {
   public async submitPost(post: string, currentUser: User) {
     var postingStatusToastId = "";
 
-    try {
-      this._view.setIsLoading(true);
-      postingStatusToastId = this._view.displayInfoMessage(
+    await this.doFailureReportingOperation(async () => {
+      this.view.setIsLoading(true);
+      postingStatusToastId = this.view.displayInfoMessage(
         "Posting status...",
         0,
       );
@@ -34,19 +34,19 @@ export class PostPresenter {
 
       await this._statusService.postStatus(this._authToken!, status);
 
-      this._view.setPost("");
-      this._view.displayInfoMessage("Status posted!", 2000);
-    } catch (error) {
-      this._view.displayErrorMessage(
-        `Failed to post the status because of exception: ${error}`,
-      );
-    } finally {
-      this._view.deleteMessage(postingStatusToastId);
-      this._view.setIsLoading(false);
-    }
+      this.view.setPost("");
+      this.view.displayInfoMessage("Status posted!", 2000);
+    }, "post the status");
+
+    this.view.deleteMessage(postingStatusToastId);
+    this.view.setIsLoading(false);
   }
 
-  public checkButtonStatus(post: string, currentUser: User, isLoading: boolean): boolean {
+  public checkButtonStatus(
+    post: string,
+    currentUser: User,
+    isLoading: boolean,
+  ): boolean {
     return !post.trim() || !this._authToken || !currentUser || isLoading;
   }
 }

@@ -7,14 +7,14 @@ export interface RegisterView extends AuthView {
   setImageFileExtension: (extension: string) => void;
 }
 
-export class RegisterPresenter extends AuthPresenter {
+export class RegisterPresenter extends AuthPresenter<RegisterView> {
   public constructor(view: RegisterView) {
     super(view, undefined);
   }
 
   public convertFileToBytes(file: File | undefined) {
     if (file) {
-      this.view.setImageUrl!(URL.createObjectURL(file));
+      this.view.setImageUrl(URL.createObjectURL(file));
 
       const reader = new FileReader();
       reader.onload = (event: ProgressEvent<FileReader>) => {
@@ -29,18 +29,18 @@ export class RegisterPresenter extends AuthPresenter {
           "base64",
         );
 
-        this.view.setImageBytes!(bytes);
+        this.view.setImageBytes(bytes);
       };
       reader.readAsDataURL(file);
 
       // Set image file extension (and move to a separate method)
       const fileExtension = this.getFileExtension(file);
       if (fileExtension) {
-        this.view.setImageFileExtension!(fileExtension);
+        this.view.setImageFileExtension(fileExtension);
       }
     } else {
-      this.view.setImageUrl!("");
-      this.view.setImageBytes!(new Uint8Array());
+      this.view.setImageUrl("");
+      this.view.setImageBytes(new Uint8Array());
     }
   }
 

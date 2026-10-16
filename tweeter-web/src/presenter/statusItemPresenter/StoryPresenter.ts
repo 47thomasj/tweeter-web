@@ -4,7 +4,7 @@ import { PageItemPresenter } from "../PageItemPresenter";
 
 export class StoryPresenter extends StatusItemPresenter {
   protected itemDescription(): string {
-    return "load story";
+    return "story";
   }
 
   protected getMoreItemsMethod(

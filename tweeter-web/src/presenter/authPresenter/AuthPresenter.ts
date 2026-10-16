@@ -5,17 +5,16 @@ import { Presenter, View } from "../Presenter";
 export interface AuthView extends View {
   updateUserInfo: (user: User, authToken: AuthToken) => void;
   navigate: (url: string) => void;
-  setImageUrl?: (url: string) => void;
-  setImageBytes?: (bytes: Uint8Array) => void;
-  setImageFileExtension?: (extension: string) => void;
   setIsLoading: (isLoading: boolean) => void;
 }
 
-export abstract class AuthPresenter extends Presenter<AuthView> {
+export abstract class AuthPresenter<
+  V extends AuthView = AuthView,
+> extends Presenter<V> {
   private _originalUrl: string | undefined;
   protected authService: AuthService;
 
-  protected constructor(view: AuthView, originalUrl: string | undefined) {
+  protected constructor(view: V, originalUrl: string | undefined) {
     super(view);
     this.authService = new AuthService();
     this.originalUrl = originalUrl;

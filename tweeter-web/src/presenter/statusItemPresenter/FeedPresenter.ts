@@ -4,7 +4,7 @@ import { PageItemPresenter } from "../PageItemPresenter";
 
 export class FeedPresenter extends StatusItemPresenter {
   protected itemDescription(): string {
-    return "load feed";
+    return "feed";
   }
 
   protected getMoreItemsMethod(

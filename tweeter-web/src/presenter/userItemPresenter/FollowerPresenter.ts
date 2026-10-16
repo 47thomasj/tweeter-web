@@ -4,7 +4,7 @@ import { PageItemPresenter } from "../PageItemPresenter";
 
 export class FollowerPresenter extends UserItemPresenter {
   protected itemDescription(): string {
-    return "load followers";
+    return "followers";
   }
 
   protected getMoreItemsMethod(

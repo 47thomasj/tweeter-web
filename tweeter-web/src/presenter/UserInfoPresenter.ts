@@ -30,52 +30,51 @@ export class UserInfoPresenter extends Presenter<UserInfoView> {
     this._authToken = authToken;
   }
 
-  public async unfollowUser(displayedUser: User) {
-    var unfollowingUserToast = "";
+  private async doFollowUnfollowUser(
+    displayedUser: User,
+    followStatus: "follow" | "unfollow",
+    followAction: (
+      authToken: AuthToken,
+      displayedUser: User,
+    ) => Promise<[number, number]>,
+  ) {
+    var followStatusUserToast = "";
 
     await this.doFailureReportingOperation(async () => {
       this.view.setIsLoading(true);
-      unfollowingUserToast = this.view.displayInfoMessage(
-        `Unfollowing ${displayedUser.name}...`,
+      followStatusUserToast = this.view.displayInfoMessage(
+        `${followStatus}ing ${displayedUser.name}...`,
         0,
       );
 
-      const [followerCount, followeeCount] = await this.userService.unfollow(
+      const [followerCount, followeeCount] = await followAction(
         this._authToken!,
         displayedUser,
       );
 
-      this.view.setIsFollower(false);
+      this.view.setIsFollower(followStatus === "follow");
       this.view.setFollowerCount(followerCount);
       this.view.setFolloweeCount(followeeCount);
-    }, "unfollow user");
+    }, `${followStatus} user`);
 
-    this.view.deleteMessage(unfollowingUserToast);
+    this.view.deleteMessage(followStatusUserToast);
     this.view.setIsLoading(false);
   }
 
+  public async unfollowUser(displayedUser: User) {
+    await this.doFollowUnfollowUser(
+      displayedUser,
+      "unfollow",
+      this.userService.unfollow,
+    );
+  }
+
   public async followUser(displayedUser: User) {
-    var followingUserToast = "";
-
-    await this.doFailureReportingOperation(async () => {
-      this.view.setIsLoading(true);
-      followingUserToast = this.view.displayInfoMessage(
-        `Following ${displayedUser.name}...`,
-        0,
-      );
-
-      const [followerCount, followeeCount] = await this.userService.follow(
-        this._authToken!,
-        displayedUser,
-      );
-
-      this.view.setIsFollower(true);
-      this.view.setFollowerCount(followerCount);
-      this.view.setFolloweeCount(followeeCount);
-    }, "follow user");
-
-    this.view.deleteMessage(followingUserToast);
-    this.view.setIsLoading(false);
+    await this.doFollowUnfollowUser(
+      displayedUser,
+      "follow",
+      this.userService.follow,
+    );
   }
 
   public _getBaseUrl(): string {

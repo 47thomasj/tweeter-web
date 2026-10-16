@@ -56,10 +56,8 @@ export class RegisterPresenter extends AuthPresenter {
     imageBytes: Uint8Array,
     imageFileExtension: string,
   ) {
-    await this.doFailureReportingOperation(async () => {
-      this.view.setIsLoading(true);
-
-      const [user, authToken] = await this.authService.register(
+    await this.doAuthOperation(async () => {
+      return this.authService.register(
         firstName,
         lastName,
         alias,
@@ -67,10 +65,6 @@ export class RegisterPresenter extends AuthPresenter {
         imageBytes,
         imageFileExtension,
       );
-
-      this.view.updateUserInfo(user, authToken);
-      this.view.navigate(`/feed/${user.alias}`);
     }, "register user");
-    this.view.setIsLoading(false);
   }
 }

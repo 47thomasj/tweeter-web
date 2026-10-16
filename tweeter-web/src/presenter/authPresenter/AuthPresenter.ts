@@ -15,7 +15,6 @@ export abstract class AuthPresenter extends Presenter<AuthView> {
   private _originalUrl: string | undefined;
   protected authService: AuthService;
 
-
   protected constructor(view: AuthView, originalUrl: string | undefined) {
     super(view);
     this.authService = new AuthService();
@@ -46,6 +45,21 @@ export abstract class AuthPresenter extends Presenter<AuthView> {
       !imageUrl ||
       !imageFileExtension
     );
+  }
+
+  protected async doAuthOperation(
+    authOperation: () => Promise<[User, AuthToken]>,
+    operationName: string,
+  ) {
+    await this.doFailureReportingOperation(async () => {
+      this.view.setIsLoading(true);
+
+      const [user, authToken] = await authOperation();
+
+      this.view.updateUserInfo(user, authToken);
+      this.view.navigate(`/feed/${user.alias}`);
+    }, operationName);
+    this.view.setIsLoading(false);
   }
 
   public abstract doAuth(

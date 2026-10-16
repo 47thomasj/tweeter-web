@@ -12,7 +12,6 @@ import Register from "./components/authentication/register/Register";
 import MainLayout from "./components/mainLayout/MainLayout";
 import Toaster from "./components/toaster/Toaster";
 import ItemScroller from "./components/mainLayout/ItemScroller";
-import UserItemScroller from "./components/mainLayout/UserItemScroller";
 import { FolloweePresenter } from "./presenter/userItemPresenter/FolloweePresenter";
 import { FollowerPresenter } from "./presenter/userItemPresenter/FollowerPresenter";
 import { StoryPresenter } from "./presenter/statusItemPresenter/StoryPresenter";

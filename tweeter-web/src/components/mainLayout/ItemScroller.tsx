@@ -6,29 +6,31 @@ import StatusItem from "../statusItem/StatusItem";
 import { useMessageActions } from "../toaster/MessageHooks";
 import { useUserInfo, useUserInfoActions } from "../userInfo/UserInfoHooks";
 import {
-  StatusItemPresenter,
-} from "../../presenter/statusItemPresenter/StatusItemPresenter";
+  PageItemPresenter,
+} from "../../presenter/PageItemPresenter";
 import { PageItemView } from "../../presenter/PageItemPresenter";
+import { Service } from "../../model.service/Service";
 
-interface Props {
+interface Props<T> {
   featureUrlPath: string;
-  presenterFactory: (view: PageItemView<Status>) => StatusItemPresenter;
+  presenterFactory: (view: PageItemView<T>) => PageItemPresenter<T, Service>;
+  itemComponentFactory: (item: T, featureUrlPath: string) => JSX.Element;
 }
-export default function StatusItemScroller(props: Props) {
+export default function ItemScroller<T>(props: Props<T>) {
   const { displayErrorMessage } = useMessageActions();
-  const [items, setItems] = useState<Status[]>([]);
+  const [items, setItems] = useState<T[]>([]);
 
   const { displayedUser, authToken } = useUserInfo();
   const { setDisplayedUser } = useUserInfoActions();
   const { displayedUser: displayedUserAliasParam } = useParams();
 
-  const listener: PageItemView<Status> = {
-    addItems: (items: Status[]) =>
+  const listener: PageItemView<T> = {
+    addItems: (items: T[]) =>
       setItems((previousItems) => [...previousItems, ...items]),
     displayErrorMessage: displayErrorMessage,
   };
 
-  const presenterRef = useRef<StatusItemPresenter | null>(null);
+  const presenterRef = useRef<PageItemPresenter<T, Service> | null>(null);
   if (!presenterRef.current) {
     presenterRef.current = props.presenterFactory(listener);
   }
@@ -79,7 +81,7 @@ export default function StatusItemScroller(props: Props) {
             key={index}
             className="row mb-3 mx-0 px-0 border rounded bg-white"
           >
-            <StatusItem status={item} featurePath={props.featureUrlPath} />
+            {props.itemComponentFactory(item, props.featureUrlPath)}
           </div>
         ))}
       </InfiniteScroll>

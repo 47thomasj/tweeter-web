@@ -65,7 +65,7 @@ export class UserInfoPresenter extends Presenter<UserInfoView> {
     await this.doFollowUnfollowUser(
       displayedUser,
       "unfollow",
-      this.userService.unfollow,
+      (authToken: AuthToken, displayedUser: User) => this.userService.unfollow(authToken, displayedUser),
     );
   }
 
@@ -73,7 +73,7 @@ export class UserInfoPresenter extends Presenter<UserInfoView> {
     await this.doFollowUnfollowUser(
       displayedUser,
       "follow",
-      this.userService.follow,
+      (authToken: AuthToken, displayedUser: User) => this.userService.follow(authToken, displayedUser),
     );
   }
 

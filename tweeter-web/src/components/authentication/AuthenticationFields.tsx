@@ -63,6 +63,7 @@ export default function AuthenticationFields({
             className="form-control"
             size={50}
             id="aliasInput"
+            aria-label="alias"
             placeholder="name@example.com"
             onKeyDown={OnEnter}
             onChange={(event) => setAlias(event.target.value)}
@@ -74,6 +75,7 @@ export default function AuthenticationFields({
             type="password"
             className="form-control"
             id="passwordInput"
+            aria-label="password"
             placeholder="Password"
             onKeyDown={OnEnter}
             onChange={(event) => setPassword(event.target.value)}

@@ -4,8 +4,30 @@ import { PostPresenter } from "../../src/presenter/PostPresenter";
 import userEvent from "@testing-library/user-event";
 import { anything, instance, mock, verify, when } from "@typestrong/ts-mockito";
 import "@testing-library/jest-dom";
+import { useUserInfo } from "../../src/components/userInfo/UserInfoHooks";
+import { AuthToken, User } from "tweeter-shared";
+
+jest.mock("../../src/components/userInfo/UserInfoHooks", () => ({
+  ...jest.requireActual("../../src/components/userInfo/UserInfoHooks"),
+  __esModule: true,
+  useUserInfo: jest.fn(),
+}));
 
 describe("PostStatus", () => {
+  let mockUserInstance: User;
+  let mockAuthTokenInstance: AuthToken;
+
+  beforeAll(() => {
+    const mockUser = mock<User>();
+    mockUserInstance = instance(mockUser);
+    const mockAuthToken = mock<AuthToken>();
+    mockAuthTokenInstance = instance(mockAuthToken);
+    (useUserInfo as jest.Mock).mockReturnValue({
+      currentUser: mockUserInstance,
+      authToken: mockAuthTokenInstance,
+    });
+  });
+
   it("starts with the post status and clear buttons disabled", () => {
     const { postStatusButton, clearStatusButton } =
       renderPostStatusAndGetElements(mock<PostPresenter>());
@@ -42,7 +64,7 @@ describe("PostStatus", () => {
 
     await user.type(textField, "test");
     await user.click(postStatusButton);
-    verify(mockPresenter.submitPost("test", anything())).once();
+    verify(mockPresenter.submitPost("test", mockUserInstance)).once();
   });
 });
 

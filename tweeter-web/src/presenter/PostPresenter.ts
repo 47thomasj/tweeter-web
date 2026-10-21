@@ -29,7 +29,7 @@ export class PostPresenter extends Presenter<PostView> {
 
       const status = new Status(post, currentUser!, Date.now());
 
-      await this._statusService.postStatus(this._authToken!, status);
+      await this.service.postStatus(this._authToken!, status);
 
       this.view.setPost("");
       this.view.displayInfoMessage("Status posted!", 2000);
@@ -37,6 +37,10 @@ export class PostPresenter extends Presenter<PostView> {
 
     this.view.deleteMessage(postingStatusToastId);
     this.view.setIsLoading(false);
+  }
+
+  public get service() {
+    return this._statusService;
   }
 
   public checkButtonStatus(

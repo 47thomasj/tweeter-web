@@ -51,6 +51,30 @@ data "archive_file" "get_followees" {
   output_path = "${path.module}/getFolloweesLambda.zip"
 }
 
+data "archive_file" "get_followers" {
+  type        = "zip"
+  source_file = "${path.module}/../tweeter-server/dist/getFollowersLambda.js"
+  output_path = "${path.module}/getFollowersLambda.zip"
+}
+
+data "archive_file" "register" {
+  type        = "zip"
+  source_file = "${path.module}/../tweeter-server/dist/registerLambda.js"
+  output_path = "${path.module}/registerLambda.zip"
+}
+
+data "archive_file" "logout" {
+  type        = "zip"
+  source_file = "${path.module}/../tweeter-server/dist/logoutLambda.js"
+  output_path = "${path.module}/logoutLambda.zip"
+}
+
+data "archive_file" "login" {
+  type        = "zip"
+  source_file = "${path.module}/../tweeter-server/dist/loginLambda.js"
+  output_path = "${path.module}/loginLambda.zip"
+}
+
 # Lambda function
 
 resource "aws_lambda_function" "get_followees" {
@@ -62,6 +86,59 @@ resource "aws_lambda_function" "get_followees" {
 
   filename         = data.archive_file.get_followees.output_path
   source_code_hash = data.archive_file.get_followees.output_base64sha256
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+}
+
+resource "aws_lambda_function" "get_followers" {
+
+  function_name = "tweeter-get-followers"
+  role          = aws_iam_role.lambda_execution.arn
+
+  runtime = "nodejs22.x"
+  handler = "getFollowersLambda.handler"
+
+  filename         = data.archive_file.get_followers.output_path
+  source_code_hash = data.archive_file.get_followers.output_base64sha256
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+}
+
+resource "aws_lambda_function" "register" {
+  function_name = "tweeter-register"
+  role          = aws_iam_role.lambda_execution.arn
+
+  runtime = "nodejs22.x"
+  handler = "registerLambda.handler"
+
+  filename         = data.archive_file.register.output_path
+  source_code_hash = data.archive_file.register.output_base64sha256
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+}
+
+resource "aws_lambda_function" "logout" {
+  function_name = "tweeter-logout"
+  role          = aws_iam_role.lambda_execution.arn
+
+  runtime = "nodejs22.x"
+  handler = "logoutLambda.handler"
+
+  filename         = data.archive_file.logout.output_path
+  source_code_hash = data.archive_file.logout.output_base64sha256
+
+  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+}
+
+resource "aws_lambda_function" "login" {
+  function_name = "tweeter-login"
+  role          = aws_iam_role.lambda_execution.arn
+
+  runtime = "nodejs22.x"
+  handler = "loginLambda.handler"
+
+  filename         = data.archive_file.login.output_path
+  source_code_hash = data.archive_file.login.output_base64sha256
 
   depends_on = [aws_iam_role_policy_attachment.lambda_logging]
 }
@@ -81,6 +158,62 @@ resource "aws_api_gateway_resource" "followees" {
 resource "aws_api_gateway_method" "get_followees" {
   rest_api_id   = aws_api_gateway_rest_api.tweeter.id
   resource_id   = aws_api_gateway_resource.followees.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_resource" "followers" {
+  rest_api_id = aws_api_gateway_rest_api.tweeter.id
+  parent_id   = aws_api_gateway_rest_api.tweeter.root_resource_id
+  path_part   = "followers"
+}
+
+resource "aws_api_gateway_method" "get_followers" {
+  rest_api_id   = aws_api_gateway_rest_api.tweeter.id
+  resource_id   = aws_api_gateway_resource.followers.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_resource" "register" {
+  rest_api_id = aws_api_gateway_rest_api.tweeter.id
+  parent_id   = aws_api_gateway_rest_api.tweeter.root_resource_id
+  path_part   = "register"
+}
+
+resource "aws_api_gateway_method" "register" {
+  rest_api_id   = aws_api_gateway_rest_api.tweeter.id
+  resource_id   = aws_api_gateway_resource.register.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_resource" "logout" {
+
+  rest_api_id = aws_api_gateway_rest_api.tweeter.id
+  parent_id   = aws_api_gateway_rest_api.tweeter.root_resource_id
+  path_part   = "logout"
+}
+
+resource "aws_api_gateway_method" "logout" {
+
+  rest_api_id   = aws_api_gateway_rest_api.tweeter.id
+  resource_id   = aws_api_gateway_resource.logout.id
+  http_method   = "POST"
+  authorization = "NONE"
+}
+
+resource "aws_api_gateway_resource" "login" {
+
+  rest_api_id = aws_api_gateway_rest_api.tweeter.id
+  parent_id   = aws_api_gateway_rest_api.tweeter.root_resource_id
+  path_part   = "login"
+}
+
+resource "aws_api_gateway_method" "login" {
+
+  rest_api_id   = aws_api_gateway_rest_api.tweeter.id
+  resource_id   = aws_api_gateway_resource.login.id
   http_method   = "POST"
   authorization = "NONE"
 }

@@ -11,5 +11,5 @@ export interface RegisterRequest extends LoginRequest {
 }
 
 export interface LogoutRequest {
-    authToken: string;
+    token: string;
 }

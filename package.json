@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "workspaces": [
     "tweeter-shared",
-    "tweeter-web"
+    "tweeter-web",
+    "tweeter-server"
   ],
   "scripts": {
     "build": "npm run build --workspace=tweeter-shared && npm run build --workspace=tweeter-server",

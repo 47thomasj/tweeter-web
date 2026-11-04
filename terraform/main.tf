@@ -47,31 +47,31 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 
 data "archive_file" "get_followees" {
   type        = "zip"
-  source_file = "${path.module}/../tweeter-server/dist/getFolloweesLambda.js"
+  source_file = "${path.module}/../tweeter-server/dist/lambda/follow/getFolloweesLambda.js"
   output_path = "${path.module}/getFolloweesLambda.zip"
 }
 
 data "archive_file" "get_followers" {
   type        = "zip"
-  source_file = "${path.module}/../tweeter-server/dist/getFollowersLambda.js"
+  source_file = "${path.module}/../tweeter-server/dist/lambda/follow/getFollowersLambda.js"
   output_path = "${path.module}/getFollowersLambda.zip"
 }
 
 data "archive_file" "register" {
   type        = "zip"
-  source_file = "${path.module}/../tweeter-server/dist/registerLambda.js"
+  source_file = "${path.module}/../tweeter-server/dist/lambda/auth/registerLambda.js"
   output_path = "${path.module}/registerLambda.zip"
 }
 
 data "archive_file" "logout" {
   type        = "zip"
-  source_file = "${path.module}/../tweeter-server/dist/logoutLambda.js"
+  source_file = "${path.module}/../tweeter-server/dist/lambda/auth/logoutLambda.js"
   output_path = "${path.module}/logoutLambda.zip"
 }
 
 data "archive_file" "login" {
   type        = "zip"
-  source_file = "${path.module}/../tweeter-server/dist/loginLambda.js"
+  source_file = "${path.module}/../tweeter-server/dist/lambda/auth/loginLambda.js"
   output_path = "${path.module}/loginLambda.zip"
 }
 

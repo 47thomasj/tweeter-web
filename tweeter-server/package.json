@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "build": "npm run compile",
+    "build": "npm run compile && npm run bundle",
+    "bundle": "esbuild src/lambda/auth/loginLambda.ts src/lambda/auth/logoutLambda.ts src/lambda/auth/registerLambda.ts src/lambda/follow/getFolloweesLambda.ts src/lambda/follow/getFollowersLambda.ts src/lambda/status/LoadMoreFeedItemsLambda.ts src/lambda/status/LoadMoreStoryItemsLambda.ts src/lambda/status/PostStatusLambda.ts --bundle --platform=node --target=node22 --outdir=dist/lambda --outbase=src/lambda",
     "compile": "npm run clean && tsc",
     "clean": "rimraf dist"
   },

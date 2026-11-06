@@ -1,27 +1,26 @@
+// Partially written by AI.
+
 import type {
-    PagedStatusItemRequest,
-    PagedStatusItemResponse,
-  } from "tweeter-shared";
-  import { StatusService } from "../../services/StatusService";
-  
-  /**
-   * Handles requests sent to the API Gateway route `POST /feed-items`.
-   */
-  export async function handler(
-    request: PagedStatusItemRequest,
-  ): Promise<PagedStatusItemResponse> {
-    const statusService = new StatusService();
+  PagedStatusItemRequest,
+  PagedStatusItemResponse,
+} from "tweeter-shared";
+import { StatusService } from "../../services/StatusService";
+import { handle } from "../BasicLambda";
+
+/**
+ * Handles requests sent to the API Gateway route `POST /feed-items`.
+ */
+export function handler(
+  request: PagedStatusItemRequest,
+): Promise<PagedStatusItemResponse> {
+  return handle(StatusService, async (statusService) => {
     const [items, hasMore] = await statusService.loadMoreFeedItems(
       request.token,
       request.userAlias,
       request.pageSize,
       request.lastItem,
     );
-    return {
-      success: true,
-      message: null,
-      items: items,
-      hasMore: hasMore,
-    };
-  }
-  
+
+    return { items, hasMore };
+  });
+}

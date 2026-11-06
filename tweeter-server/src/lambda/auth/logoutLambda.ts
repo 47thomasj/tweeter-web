@@ -1,12 +1,13 @@
+// Partially written by AI.
+
 import { LogoutRequest, TweeterResponse } from "tweeter-shared";
 import { AuthService } from "../../services/AuthService";
+import { handle } from "../BasicLambda";
 
 // POST /logout
-export async function handler(request: LogoutRequest): Promise<TweeterResponse> {
-    const authService = new AuthService();
+export function handler(request: LogoutRequest): Promise<TweeterResponse> {
+  return handle(AuthService, async (authService) => {
     await authService.logout(request.token);
-    return {
-        success: true,
-        message: null,
-    }
+    return {};
+  });
 }

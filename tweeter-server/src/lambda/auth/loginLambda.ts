@@ -1,15 +1,17 @@
+// Partially written by AI.
+
 import type { LoginRequest } from "tweeter-shared";
 import type { AuthResponse } from "tweeter-shared/src/model/net/responses/AuthReponse";
 import { AuthService } from "../../services/AuthService";
+import { handle } from "../BasicLambda";
 
 // POST /login
-export async function handler(request: LoginRequest): Promise<AuthResponse> {
-    const authService = new AuthService();
-    const [user, authToken] = await authService.login(request.alias, request.password);
-    return {
-        success: true,
-        message: null,
-        user: user,
-        authToken: authToken,
-    }
+export function handler(request: LoginRequest): Promise<AuthResponse> {
+  return handle(AuthService, async (authService) => {
+    const [user, authToken] = await authService.login(
+      request.alias,
+      request.password,
+    );
+    return { user, authToken };
+  });
 }

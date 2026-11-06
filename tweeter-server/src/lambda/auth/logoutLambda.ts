@@ -1,5 +1,4 @@
-import { LogoutRequest } from "tweeter-shared";
-import { TweeterResponse } from "tweeter-shared/dist/model/net/responses/TweeterResponse";
+import { LogoutRequest, TweeterResponse } from "tweeter-shared";
 import { AuthService } from "../../services/AuthService";
 
 // POST /logout

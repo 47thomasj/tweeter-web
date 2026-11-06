@@ -14,11 +14,13 @@ export { FakeData } from "./util/FakeData";
 export type { PagedUserItemRequest } from "./model/net/request/PagedUserItemRequest";
 export type { LoginRequest, RegisterRequest, LogoutRequest } from "./model/net/request/AuthRequests";
 export type { PagedStatusItemRequest } from "./model/net/request/PagesStatusItemRequest";
+export type { PostStatusRequest } from "./model/net/request/PostStatusRequest";
 
 // Responses
 export type { PagedUserItemResponse } from "./model/net/responses/PagedUserItemResponse";
 export type { AuthResponse } from "./model/net/responses/AuthReponse";
 export type { PagedStatusItemResponse } from "./model/net/responses/PagedStatusItemReponse";
+export type { TweeterResponse } from "./model/net/responses/TweeterResponse";
 
 // DTOs
 export type { UserDto } from "./model/dto/UserDto";

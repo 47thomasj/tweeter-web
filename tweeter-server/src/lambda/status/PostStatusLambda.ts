@@ -1,27 +1,23 @@
 import type {
-    PagedStatusItemRequest,
-    PagedStatusItemResponse,
+    PostStatusRequest,
+    TweeterResponse,
   } from "tweeter-shared";
   import { StatusService } from "../../services/StatusService";
   
   /**
-   * Handles requests sent to the API Gateway route `POST /story-items`.
+   * Handles requests sent to the API Gateway route `POST /post-status`.
    */
   export async function handler(
-    request: PagedStatusItemRequest,
-  ): Promise<PagedStatusItemResponse> {
+    request: PostStatusRequest,
+  ): Promise<TweeterResponse> {
     const statusService = new StatusService();
-    const [items, hasMore] = await statusService.loadMoreStoryItems(
+    await statusService.postStatus(
       request.token,
-      request.userAlias,
-      request.pageSize,
-      request.lastItem,
+      request.status,
     );
     return {
       success: true,
       message: null,
-      items: items,
-      hasMore: hasMore,
     };
   }
   

@@ -1,3 +1,4 @@
+import { StatusDto } from "../dto/StatusDto";
 import { PostSegment, Type } from "./PostSegment";
 import { User } from "./User";
 import { format } from "date-fns";
@@ -8,11 +9,16 @@ export class Status {
   private _timestamp: number;
   private _segments: PostSegment[];
 
-  public constructor(post: string, user: User, timestamp: number) {
+  public constructor(
+    post: string,
+    user: User,
+    timestamp: number,
+    segments?: PostSegment[],
+  ) {
     this._post = post;
     this._user = user;
     this._timestamp = timestamp;
-    this._segments = this.getPostSegments(post);
+    this._segments = segments || this.getPostSegments(post);
   }
 
   private getPostSegments(post: string): PostSegment[] {
@@ -21,12 +27,12 @@ export class Status {
     let startIndex = 0;
 
     for (let reference of Status.getSortedReferences(post)) {
-      if (startIndex < reference.startPostion) {
+      if (startIndex < reference.startPosition) {
         segments.push(
           new PostSegment(
-            post.substring(startIndex, reference.startPostion),
+            post.substring(startIndex, reference.startPosition),
             startIndex,
-            reference.startPostion - 1,
+            reference.startPosition - 1,
             Type.text,
           ),
         );
@@ -59,7 +65,7 @@ export class Status {
     ];
 
     references.sort((a, b) => {
-      return a.startPostion - b.startPostion;
+      return a.startPosition - b.startPosition;
     });
 
     return references;
@@ -228,5 +234,26 @@ export class Status {
 
   public toJson(): string {
     return JSON.stringify(this);
+  }
+
+  public static fromDto(dto: StatusDto | null): Status | null {
+    if (dto === null) {
+      return null;
+    }
+    return new Status(
+      dto.post,
+      User.fromDto(dto.user)!,
+      dto.timestamp,
+      dto.segments.map((segment) => PostSegment.fromDto(segment)!),
+    );
+  }
+
+  public get dto(): StatusDto {
+    return {
+      post: this.post,
+      user: this.user.dto,
+      timestamp: this.timestamp,
+      segments: this.segments.map((segment) => segment.dto),
+    };
   }
 }

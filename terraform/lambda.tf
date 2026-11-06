@@ -50,6 +50,42 @@ locals {
       handler       = "PostStatusLambda.handler"
       route         = "post-status"
     }
+    unfollow = {
+      function_name = "tweeter-unfollow"
+      source_file   = "user/UnfollowLambdaLambda.js"
+      handler       = "UnfollowLambdaLambda.handler"
+      route         = "unfollow"
+    }
+    get_user = {
+      function_name = "tweeter-get-user"
+      source_file   = "user/GetUserLambdaLambda.js"
+      handler       = "GetUserLambdaLambda.handler"
+      route         = "user"
+    }
+    get_is_follower_status = {
+      function_name = "tweeter-get-is-follower-status"
+      source_file   = "user/GetIsFollowerStatusLambda.js"
+      handler       = "GetIsFollowerStatusLambda.handler"
+      route         = "is-follower-status"
+    }
+    get_follower_count = {
+      function_name = "tweeter-get-follower-count"
+      source_file   = "user/getFollowerCountLambda.js"
+      handler       = "getFollowerCountLambda.handler"
+      route         = "follower-count"
+    }
+    get_followee_count = {
+      function_name = "tweeter-get-followee-count"
+      source_file   = "user/GetFolloweeCountLambda.js"
+      handler       = "GetFolloweeCountLambda.handler"
+      route         = "followee-count"
+    }
+    follow = {
+      function_name = "tweeter-follow"
+      source_file   = "user/FollowLambda.js"
+      handler       = "FollowLambda.handler"
+      route         = "follow"
+    }
   }
 }
 

@@ -7,7 +7,7 @@ export class UserService implements Service {
     alias: string,
   ): Promise<UserDto | null> {
     // TODO: Replace with the result of calling server
-    return FakeData.instance.findUserByAlias(alias);
+    return FakeData.instance.findUserByAlias(alias)?.dto ?? null;
   }
 
   public async getIsFollowerStatus(

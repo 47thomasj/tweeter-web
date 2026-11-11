@@ -7,7 +7,7 @@ export class ClientCommunicator {
     this.SERVER_URL = SERVER_URL;
   }
 
-  public async doPost<REQ extends TweeterRequest, RES extends TweeterResponse>(
+  public async doPost<REQ extends TweeterRequest, RES extends TweeterResponse | void>(
     req: REQ | undefined,
     endpoint: string,
     headers?: Headers,

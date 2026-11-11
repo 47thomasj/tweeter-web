@@ -2,13 +2,20 @@
 
 import {
   PagedStatusItemRequest,
-  PagedStatusItemResponse,
   PagedUserItemRequest,
-  PagedUserItemResponse,
   Status,
+  StatusDto,
+  TweeterRequest,
+  TweeterResponse,
   User,
+  UserDto,
 } from "tweeter-shared";
 import { ClientCommunicator } from "./ClientCommunicator";
+
+interface PagedItemResponse<Dto> extends TweeterResponse {
+  readonly items: Dto[] | null;
+  readonly hasMore: boolean;
+}
 
 export class ServerFacade {
   private readonly SERVER_URL =
@@ -16,24 +23,29 @@ export class ServerFacade {
 
   private clientCommunicator = new ClientCommunicator(this.SERVER_URL);
 
-  public async getMoreFollowees(
-    request: PagedUserItemRequest,
-  ): Promise<[User[], boolean]> {
+  private async makeServerRequest<
+    Request extends TweeterRequest,
+    Dto,
+    Item,
+  >(
+    request: Request,
+    requestPath: string,
+    deserialize: (dto: Dto) => Item,
+    itemDescriptor: string,
+  ): Promise<[Item[], boolean]> {
     const response = await this.clientCommunicator.doPost<
-      PagedUserItemRequest,
-      PagedUserItemResponse
-    >(request, "/followees");
+      Request,
+      PagedItemResponse<Dto>
+    >(request, requestPath);
 
-    // Convert the UserDto array returned by ClientCommunicator to a User array
-    const items: User[] | null =
+    const items: Item[] | null =
       response.success && response.items
-        ? response.items.map((dto) => User.fromDto(dto) as User)
+        ? response.items.map(deserialize)
         : null;
 
-    // Handle errors
     if (response.success) {
       if (items == null) {
-        throw new Error(`No followees found`);
+        throw new Error(`No ${itemDescriptor} found`);
       } else {
         return [items, response.hasMore];
       }
@@ -43,23 +55,25 @@ export class ServerFacade {
     }
   }
 
+  public async getMoreFollowees(
+    request: PagedUserItemRequest,
+  ): Promise<[User[], boolean]> {
+    return this.makeServerRequest(
+      request,
+      "/followees",
+      (dto: UserDto) => User.fromDto(dto) as User,
+      "followees",
+    );
+  }
+
   public async loadMoreFeedItems(
     request: PagedStatusItemRequest,
   ): Promise<[Status[], boolean]> {
-    const response = await this.clientCommunicator.doPost<
-      PagedStatusItemRequest,
-      PagedStatusItemResponse
-    >(request, "/feed-items");
-
-    if (!response.success) {
-      throw new Error(response.message ?? "Unable to load feed items");
-    }
-
-    if (response.items === null) {
-      throw new Error("No feed items found");
-    }
-
-    const items = response.items.map((dto) => Status.fromDto(dto) as Status);
-    return [items, response.hasMore];
+    return this.makeServerRequest(
+      request,
+      "/feed-items",
+      (dto: StatusDto) => Status.fromDto(dto) as Status,
+      "feed items",
+    );
   }
 }

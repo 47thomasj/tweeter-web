@@ -7,7 +7,7 @@ import {
   PageItemPresenter,
 } from "../../presenter/PageItemPresenter";
 import { PageItemView } from "../../presenter/PageItemPresenter";
-import { Service } from "../../model.service/Service";
+import { Service } from "../../model/service/Service";
 
 interface Props<T> {
   featureUrlPath: string;

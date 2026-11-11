@@ -1,15 +1,31 @@
-import { AuthToken, FakeData, Status } from "tweeter-shared";
+// Partially written by AI.
+
+import {
+  AuthToken,
+  FakeData,
+  PagedStatusItemRequest,
+  Status,
+} from "tweeter-shared";
+import { ServerFacade } from "../ServerFascade";
 import { Service } from "./Service";
 
 export class StatusService implements Service {
+  private serverFacade = new ServerFacade();
+
   public async loadMoreFeedItems(
     authToken: AuthToken,
     userAlias: string,
     pageSize: number,
     lastItem: Status | null,
   ): Promise<[Status[], boolean]> {
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.getPageOfStatuses(lastItem, pageSize);
+    const request: PagedStatusItemRequest = {
+      token: authToken.token,
+      userAlias,
+      pageSize,
+      lastItem: lastItem?.dto ?? null,
+    };
+
+    return this.serverFacade.loadMoreFeedItems(request);
   }
 
   public async loadMoreStoryItems(

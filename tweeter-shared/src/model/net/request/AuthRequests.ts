@@ -1,4 +1,6 @@
-export interface LoginRequest {
+import { TweeterRequest } from "../request/TweeterRequest";
+
+export interface LoginRequest extends TweeterRequest {
     alias: string;
     password: string;
 }
@@ -10,6 +12,6 @@ export interface RegisterRequest extends LoginRequest {
     imageFileExtension: string;
 }
 
-export interface LogoutRequest {
+export interface LogoutRequest extends TweeterRequest {
     token: string;
 }

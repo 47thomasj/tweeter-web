@@ -25,6 +25,8 @@ export type {
   FollowRequest,
   UnfollowRequest,
 } from "./model/net/request/UserRequests";
+export type { TweeterRequest } from "./model/net/request/TweeterRequest";
+
 // Responses
 export type { PagedUserItemResponse } from "./model/net/responses/PagedUserItemResponse";
 export type { AuthResponse } from "./model/net/responses/AuthReponse";

@@ -1,6 +1,7 @@
 import { UserDto } from "../../dto/UserDto";
+import { TweeterRequest } from "../request/TweeterRequest";
 
-export interface UserRequest {
+export interface UserRequest extends TweeterRequest{
     token: string;
 }
 

@@ -6,6 +6,7 @@ import type {
 } from "tweeter-shared";
 import { StatusService } from "../../services/StatusService";
 import { handle } from "../BasicLambda";
+import { validatePagedStatusItemRequest } from "../RequestValidation";
 
 /**
  * Handles requests sent to the API Gateway route `POST /story-items`.
@@ -13,12 +14,15 @@ import { handle } from "../BasicLambda";
 export function handler(
   request: PagedStatusItemRequest,
 ): Promise<PagedStatusItemResponse> {
-  return handle(StatusService, async (statusService) => {
+  return handle(request, validatePagedStatusItemRequest, StatusService, async (
+    statusService,
+    validatedRequest,
+  ) => {
     const [items, hasMore] = await statusService.loadMoreStoryItems(
-      request.token,
-      request.userAlias,
-      request.pageSize,
-      request.lastItem,
+      validatedRequest.token,
+      validatedRequest.userAlias,
+      validatedRequest.pageSize,
+      validatedRequest.lastItem,
     );
 
     return { items, hasMore };

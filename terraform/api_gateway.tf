@@ -6,33 +6,6 @@ resource "aws_api_gateway_rest_api" "tweeter" {
   name = "tweeter-api"
 }
 
-locals {
-  lambda_response_definitions = {
-    for response in flatten([
-      for lambda_key in sort(keys(local.lambda_definitions)) : [
-        {
-          key               = lambda_key
-          lambda_key        = lambda_key
-          status_code       = "200"
-          selection_pattern = null
-        },
-        {
-          key               = "${lambda_key}:400"
-          lambda_key        = lambda_key
-          status_code       = "400"
-          selection_pattern = "(?s)^BadRequest:.*$"
-        },
-        {
-          key               = "${lambda_key}:500"
-          lambda_key        = lambda_key
-          status_code       = "500"
-          selection_pattern = "(?s)^(?!BadRequest:).*$"
-        }
-      ]
-    ]) : response.key => response
-  }
-}
-
 resource "aws_api_gateway_resource" "lambda" {
   for_each = local.lambda_definitions
 
@@ -69,12 +42,12 @@ resource "aws_api_gateway_integration" "lambda" {
 }
 
 resource "aws_api_gateway_method_response" "lambda" {
-  for_each = local.lambda_response_definitions
+  for_each = local.lambda_definitions
 
   rest_api_id = aws_api_gateway_rest_api.tweeter.id
-  resource_id = aws_api_gateway_resource.lambda[each.value.lambda_key].id
-  http_method = aws_api_gateway_method.lambda[each.value.lambda_key].http_method
-  status_code = each.value.status_code
+  resource_id = aws_api_gateway_resource.lambda[each.key].id
+  http_method = aws_api_gateway_method.lambda[each.key].http_method
+  status_code = "200"
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Origin" = true
@@ -82,13 +55,12 @@ resource "aws_api_gateway_method_response" "lambda" {
 }
 
 resource "aws_api_gateway_integration_response" "lambda" {
-  for_each = local.lambda_response_definitions
+  for_each = local.lambda_definitions
 
-  rest_api_id       = aws_api_gateway_rest_api.tweeter.id
-  resource_id       = aws_api_gateway_resource.lambda[each.value.lambda_key].id
-  http_method       = aws_api_gateway_method.lambda[each.value.lambda_key].http_method
-  status_code       = aws_api_gateway_method_response.lambda[each.key].status_code
-  selection_pattern = each.value.selection_pattern
+  rest_api_id = aws_api_gateway_rest_api.tweeter.id
+  resource_id = aws_api_gateway_resource.lambda[each.key].id
+  http_method = aws_api_gateway_method.lambda[each.key].http_method
+  status_code = aws_api_gateway_method_response.lambda[each.key].status_code
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Origin" = "'*'"
@@ -185,18 +157,9 @@ resource "aws_api_gateway_deployment" "tweeter" {
         for key in sort(keys(local.lambda_definitions)) :
         aws_api_gateway_integration.lambda[key].id
       ]
-      method_responses = [
-        for key in sort(keys(local.lambda_response_definitions)) : {
-          id          = aws_api_gateway_method_response.lambda[key].id
-          status_code = local.lambda_response_definitions[key].status_code
-        }
-      ]
       integration_responses = [
-        for key in sort(keys(local.lambda_response_definitions)) : {
-          id                = aws_api_gateway_integration_response.lambda[key].id
-          selection_pattern = local.lambda_response_definitions[key].selection_pattern
-          status_code       = local.lambda_response_definitions[key].status_code
-        }
+        for key in sort(keys(local.lambda_definitions)) :
+        aws_api_gateway_integration_response.lambda[key].id
       ]
       cors_methods = [
         for key in sort(keys(local.lambda_definitions)) :
@@ -218,7 +181,6 @@ resource "aws_api_gateway_deployment" "tweeter" {
   }
 
   depends_on = [
-    aws_api_gateway_method_response.lambda,
     aws_api_gateway_integration_response.lambda,
     aws_api_gateway_integration_response.cors,
   ]

@@ -1,24 +1,15 @@
 // Partially written by AI.
 
 import type { TweeterResponse } from "tweeter-shared";
-import type { RequestValidator } from "./RequestValidation";
 
 type ServiceConstructor<TService> = new () => TService;
 
-export async function handle<
-  TService,
-  TRequest extends object,
-  TPayload extends object,
->(
-  request: unknown,
-  validate: RequestValidator<TRequest>,
+export async function handle<TService, TPayload extends object>(
   ServiceClass: ServiceConstructor<TService>,
-  action: (service: TService, request: TRequest) => Promise<TPayload>,
+  action: (service: TService) => Promise<TPayload>,
 ): Promise<TweeterResponse & TPayload> {
-  validate(request);
-
   const service = new ServiceClass();
-  const payload = await action(service, request);
+  const payload = await action(service);
 
   return {
     success: true,

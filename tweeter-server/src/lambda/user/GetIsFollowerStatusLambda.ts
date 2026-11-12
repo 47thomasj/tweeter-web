@@ -1,28 +1,11 @@
-// Partially written by AI.
-
 import { handle } from "../BasicLambda";
 import { UserService } from "../../services/UserService";
-import type {
-  GetIsFollowerStatusRequest,
-  GetIsFollowerStatusResponse,
-} from "tweeter-shared";
-import { validateGetIsFollowerStatusRequest } from "../RequestValidation";
+import type { GetIsFollowerStatusRequest, GetIsFollowerStatusResponse } from "tweeter-shared";
 
 // POST /is-follower-status
-export function handler(
-  request: GetIsFollowerStatusRequest,
-): Promise<GetIsFollowerStatusResponse> {
-  return handle(
-    request,
-    validateGetIsFollowerStatusRequest,
-    UserService,
-    async (userService, validatedRequest) => {
-      const isFollower = await userService.getIsFollowerStatus(
-        validatedRequest.token,
-        validatedRequest.user,
-        validatedRequest.selectedUser,
-      );
-      return { isFollower };
-    },
-  );
+export function handler(request: GetIsFollowerStatusRequest): Promise<GetIsFollowerStatusResponse> {
+    return handle(UserService, async (userService) => {
+        const isFollower = await userService.getIsFollowerStatus(request.token, request.user, request.selectedUser);
+        return { isFollower };
+    });
 }

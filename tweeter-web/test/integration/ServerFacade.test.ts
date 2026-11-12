@@ -1,9 +1,35 @@
 /** @jest-environment node */
 /**
- * Verifies that ServerFacade communicates correctly with every live API route.
+ * Using Jest, write integration tests to verify 
+ * that the Server Facade class correctly communicates with the live server. 
+ * Ttest code should directly call the ServerFacade class (ie, no need to involve Services or Presenters). 
+ * 
+ * CASES:
+ * - Register with all valid credentials -> the fake data auth token
+ * - Register with invalid credentials -> server error
+ * - Register with incomplete credentials -> 400
+ * 
+ * - Login with valid credentials -> the fake data user and auth token
+ * - Login with invalid credentials -> server error
+ * - Login with incoplete credentials -> 400
+ * 
+ * - GetFollowers with valid token and alias -> list of users from fake data
+ * - GetFollowers without a token -> 400
+ * - GetFollowers without an alias -> 400
+ * 
+ * - GetFollowingCount with valid token -> number from fake data
+ * - GetFollowingCount without a token -> 400
+ * - GetFollowingCount without a user -> 400
  */
 
-import { AuthToken, User } from "tweeter-shared";
+import {
+  AuthToken,
+  GetFollowCountRequest,
+  LoginRequest,
+  PagedUserItemRequest,
+  RegisterRequest,
+  User,
+} from "tweeter-shared";
 import { ServerFacade } from "../../src/model/ServerFacade";
 import {
   captureHttpResult,
@@ -11,17 +37,12 @@ import {
   expectFakeDataAuthToken,
   FIRST_FAKE_USER,
   getExpectedFollowerDtos,
-  makeFollowRequest,
   makeFollowCountRequest,
   makeFollowersRequest,
-  makeGetUserRequest,
-  makeIsFollowerStatusRequest,
+  makeInvalidLoginRequest,
+  makeInvalidRegisterRequest,
   makeLoginRequest,
-  makeLogoutRequest,
-  makePostStatusRequest,
   makeRegisterRequest,
-  makeStatusPageRequest,
-  makeUnfollowRequest,
   omitRequestField,
 } from "./ServerFacade.test-utils";
 
@@ -30,144 +51,6 @@ jest.setTimeout(30_000);
 let serverFacade: ServerFacade;
 let authenticatedUser: User;
 let authToken: AuthToken;
-
-interface EndpointBadRequestCase {
-  readonly name: string;
-  readonly action: () => Promise<unknown>;
-}
-
-function withoutRequiredField<
-  Request extends object,
-  Field extends keyof Request,
->(request: Request, field: Field): Request {
-  return omitRequestField(request, field) as unknown as Request;
-}
-
-const endpointBadRequestCases: EndpointBadRequestCase[] = [
-  {
-    name: "POST /register",
-    action: () =>
-      serverFacade.register(
-        withoutRequiredField(makeRegisterRequest(), "firstName"),
-      ),
-  },
-  {
-    name: "POST /login",
-    action: () =>
-      serverFacade.login(withoutRequiredField(makeLoginRequest(), "alias")),
-  },
-  {
-    name: "POST /logout",
-    action: () =>
-      serverFacade.logout(
-        withoutRequiredField(makeLogoutRequest(authToken.token), "token"),
-      ),
-  },
-  {
-    name: "POST /followees",
-    action: () =>
-      serverFacade.getMoreFollowees(
-        withoutRequiredField(
-          makeFollowersRequest(authToken.token),
-          "userAlias",
-        ),
-      ),
-  },
-  {
-    name: "POST /followers",
-    action: () =>
-      serverFacade.getMoreFollowers(
-        withoutRequiredField(makeFollowersRequest(authToken.token), "token"),
-      ),
-  },
-  {
-    name: "POST /feed-items",
-    action: () =>
-      serverFacade.loadMoreFeedItems(
-        withoutRequiredField(
-          makeStatusPageRequest(authToken.token),
-          "userAlias",
-        ),
-      ),
-  },
-  {
-    name: "POST /story-items",
-    action: () =>
-      serverFacade.loadMoreStoryItems(
-        withoutRequiredField(
-          makeStatusPageRequest(authToken.token),
-          "pageSize",
-        ),
-      ),
-  },
-  {
-    name: "POST /post-status",
-    action: () =>
-      serverFacade.postStatus(
-        withoutRequiredField(
-          makePostStatusRequest(authToken.token),
-          "status",
-        ),
-      ),
-  },
-  {
-    name: "POST /user",
-    action: () =>
-      serverFacade.getUser(
-        withoutRequiredField(makeGetUserRequest(authToken.token), "alias"),
-      ),
-  },
-  {
-    name: "POST /is-follower-status",
-    action: () =>
-      serverFacade.getIsFollowerStatus(
-        withoutRequiredField(
-          makeIsFollowerStatusRequest(authToken.token),
-          "selectedUser",
-        ),
-      ),
-  },
-  {
-    name: "POST /followee-count",
-    action: () =>
-      serverFacade.getFolloweeCount(
-        withoutRequiredField(
-          makeFollowCountRequest(authToken.token),
-          "user",
-        ),
-      ),
-  },
-  {
-    name: "POST /follower-count",
-    action: () =>
-      serverFacade.getFollowerCount(
-        withoutRequiredField(
-          makeFollowCountRequest(authToken.token),
-          "token",
-        ),
-      ),
-  },
-  {
-    name: "POST /follow",
-    action: () =>
-      serverFacade.follow(
-        withoutRequiredField(
-          makeFollowRequest(authToken.token),
-          "userToFollow",
-        ),
-      ),
-  },
-  {
-    name: "POST /unfollow",
-    action: () =>
-      serverFacade.unfollow(
-        withoutRequiredField(
-          makeUnfollowRequest(authToken.token),
-          "userToUnfollow",
-        ),
-      ),
-  },
-];
 
 beforeAll(async () => {
   [authenticatedUser, authToken] = await new ServerFacade().login(
@@ -224,13 +107,5 @@ describe("ServerFacade.getFollowerCount", () => {
     expect(Number.isInteger(followerCount)).toBe(true);
     expect(followerCount).toBeGreaterThanOrEqual(1);
     expect(followerCount).toBeLessThanOrEqual(10);
-  });
-});
-
-describe.each(endpointBadRequestCases)("$name error response", ({ action }) => {
-  it("returns HTTP 400 for a malformed request body", async () => {
-    const result = await captureHttpResult(action);
-
-    expectBadRequest(result);
   });
 });

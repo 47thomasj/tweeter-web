@@ -6,7 +6,6 @@ import type {
 } from "tweeter-shared";
 import { FollowService } from "../../services/FollowService";
 import { handle } from "../BasicLambda";
-import { validatePagedUserItemRequest } from "../RequestValidation";
 
 /**
  * Handles requests sent to the API Gateway route `POST /followees`.
@@ -14,15 +13,12 @@ import { validatePagedUserItemRequest } from "../RequestValidation";
 export function handler(
   request: PagedUserItemRequest,
 ): Promise<PagedUserItemResponse> {
-  return handle(request, validatePagedUserItemRequest, FollowService, async (
-    followService,
-    validatedRequest,
-  ) => {
+  return handle(FollowService, async (followService) => {
     const [items, hasMore] = await followService.loadMoreFollowees(
-      validatedRequest.token,
-      validatedRequest.userAlias,
-      validatedRequest.pageSize,
-      validatedRequest.lastItem,
+      request.token,
+      request.userAlias,
+      request.pageSize,
+      request.lastItem,
     );
 
     return { items, hasMore };

@@ -3,17 +3,10 @@
 import {
   AuthToken,
   FakeData,
-  FollowRequest,
   GetFollowCountRequest,
-  GetIsFollowerStatusRequest,
-  GetUserRequest,
   LoginRequest,
-  LogoutRequest,
-  PagedStatusItemRequest,
   PagedUserItemRequest,
-  PostStatusRequest,
   RegisterRequest,
-  UnfollowRequest,
   UserDto,
 } from "tweeter-shared";
 
@@ -26,14 +19,6 @@ if (firstFakeUser === null) {
 }
 
 export const FIRST_FAKE_USER = firstFakeUser;
-
-const firstFakeStatus = FakeData.instance.fakeStatuses[0];
-
-if (firstFakeStatus === undefined) {
-  throw new Error("The integration tests require at least one fake status");
-}
-
-export const FIRST_FAKE_STATUS = firstFakeStatus;
 
 export function makeLoginRequest(
   overrides: Partial<LoginRequest> = {},
@@ -75,16 +60,6 @@ export function makeInvalidRegisterRequest(): RegisterRequest {
   });
 }
 
-export function makeLogoutRequest(
-  token: string,
-  overrides: Partial<LogoutRequest> = {},
-): LogoutRequest {
-  return {
-    token,
-    ...overrides,
-  };
-}
-
 export function makeFollowersRequest(
   token: string,
   overrides: Partial<PagedUserItemRequest> = {},
@@ -98,41 +73,6 @@ export function makeFollowersRequest(
   };
 }
 
-export function makeStatusPageRequest(
-  token: string,
-  overrides: Partial<PagedStatusItemRequest> = {},
-): PagedStatusItemRequest {
-  return {
-    token,
-    userAlias: FIRST_FAKE_USER.alias,
-    pageSize: FOLLOWERS_PAGE_SIZE,
-    lastItem: null,
-    ...overrides,
-  };
-}
-
-export function makePostStatusRequest(
-  token: string,
-  overrides: Partial<PostStatusRequest> = {},
-): PostStatusRequest {
-  return {
-    token,
-    status: FIRST_FAKE_STATUS.dto,
-    ...overrides,
-  };
-}
-
-export function makeGetUserRequest(
-  token: string,
-  overrides: Partial<GetUserRequest> = {},
-): GetUserRequest {
-  return {
-    token,
-    alias: FIRST_FAKE_USER.alias,
-    ...overrides,
-  };
-}
-
 export function makeFollowCountRequest(
   token: string,
   overrides: Partial<GetFollowCountRequest> = {},
@@ -140,40 +80,6 @@ export function makeFollowCountRequest(
   return {
     token,
     user: FIRST_FAKE_USER.dto,
-    ...overrides,
-  };
-}
-
-export function makeIsFollowerStatusRequest(
-  token: string,
-  overrides: Partial<GetIsFollowerStatusRequest> = {},
-): GetIsFollowerStatusRequest {
-  return {
-    token,
-    user: FIRST_FAKE_USER.dto,
-    selectedUser: FIRST_FAKE_USER.dto,
-    ...overrides,
-  };
-}
-
-export function makeFollowRequest(
-  token: string,
-  overrides: Partial<FollowRequest> = {},
-): FollowRequest {
-  return {
-    token,
-    userToFollow: FIRST_FAKE_USER.dto,
-    ...overrides,
-  };
-}
-
-export function makeUnfollowRequest(
-  token: string,
-  overrides: Partial<UnfollowRequest> = {},
-): UnfollowRequest {
-  return {
-    token,
-    userToUnfollow: FIRST_FAKE_USER.dto,
     ...overrides,
   };
 }

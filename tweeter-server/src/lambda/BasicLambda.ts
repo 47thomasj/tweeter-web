@@ -7,9 +7,17 @@ type ServiceConstructor<TService> = new () => TService;
 export async function handle<TService, TPayload extends object>(
   ServiceClass: ServiceConstructor<TService>,
   action: (service: TService) => Promise<TPayload>,
-): Promise<TweeterResponse & TPayload> {
+): Promise<TweeterResponse> {
   const service = new ServiceClass();
-  const payload = await action(service);
+  let payload: TPayload | undefined;
+  try {
+    payload = await action(service);
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Bad Request",
+    };
+  }
 
   return {
     success: true,

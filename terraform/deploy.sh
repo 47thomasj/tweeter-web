@@ -9,7 +9,6 @@ cd ../
 npm run build
 
 cd terraform
-terraform init
 terraform fmt
 terraform validate
 terraform apply "$@"

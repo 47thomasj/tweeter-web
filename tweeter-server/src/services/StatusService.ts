@@ -1,4 +1,11 @@
+// Partially written by AI.
+
 import { FakeData, Status, StatusDto } from "tweeter-shared";
+import {
+  requireNonEmptyStrings,
+  requirePositiveNumber,
+  requireStatusDto,
+} from "./RequestValidation";
 import { Service } from "./Service";
 
 export class StatusService implements Service {
@@ -8,6 +15,8 @@ export class StatusService implements Service {
     pageSize: number,
     lastItem: StatusDto | null,
   ): Promise<[StatusDto[], boolean]> {
+    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+
     // TODO: Replace with the result of calling server
     return this.getFakeData(lastItem, pageSize, userAlias);
   }
@@ -18,6 +27,8 @@ export class StatusService implements Service {
     pageSize: number,
     lastItem: StatusDto | null,
   ): Promise<[StatusDto[], boolean]> {
+    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+
     // TODO: Replace with the result of calling server
     return this.getFakeData(lastItem, pageSize, userAlias);
   }
@@ -26,10 +37,27 @@ export class StatusService implements Service {
     token: string,
     newStatus: StatusDto,
   ): Promise<void> {
+    requireNonEmptyStrings(token);
+    requireStatusDto(newStatus);
+
     // Pause so we can see the logging out message. Remove when connected to the server
     await new Promise((f) => setTimeout(f, 2000));
 
     // TODO: Call the server to post the status
+  }
+
+  private validatePageRequest(
+    token: string,
+    userAlias: string,
+    pageSize: number,
+    lastItem: StatusDto | null,
+  ): void {
+    requireNonEmptyStrings(token, userAlias);
+    requirePositiveNumber(pageSize);
+
+    if (lastItem !== null) {
+      requireStatusDto(lastItem);
+    }
   }
 
   private async getFakeData(

@@ -24,11 +24,20 @@
 
 import {
   AuthToken,
+  FollowRequest,
   GetFollowCountRequest,
+  GetIsFollowerStatusRequest,
+  GetUserRequest,
   LoginRequest,
+  LogoutRequest,
+  PagedStatusItemRequest,
   PagedUserItemRequest,
+  PostStatusRequest,
   RegisterRequest,
+  StatusDto,
+  UnfollowRequest,
   User,
+  UserDto,
 } from "tweeter-shared";
 import { ServerFacade } from "../../src/model/ServerFacade";
 import {
@@ -39,11 +48,8 @@ import {
   getExpectedFollowerDtos,
   makeFollowCountRequest,
   makeFollowersRequest,
-  makeInvalidLoginRequest,
-  makeInvalidRegisterRequest,
   makeLoginRequest,
   makeRegisterRequest,
-  omitRequestField,
 } from "./ServerFacade.test-utils";
 
 jest.setTimeout(30_000);
@@ -51,6 +57,82 @@ jest.setTimeout(30_000);
 let serverFacade: ServerFacade;
 let authenticatedUser: User;
 let authToken: AuthToken;
+
+const EMPTY_USER_DTO: UserDto = {
+  firstName: "",
+  lastName: "",
+  alias: "",
+  imageUrl: "",
+};
+
+const EMPTY_STATUS_DTO: StatusDto = {
+  post: "",
+  user: EMPTY_USER_DTO,
+  timestamp: 0,
+  segments: [],
+};
+
+const EMPTY_LOGIN_REQUEST: LoginRequest = {
+  alias: "",
+  password: "",
+};
+
+const EMPTY_REGISTER_REQUEST: RegisterRequest = {
+  ...EMPTY_LOGIN_REQUEST,
+  firstName: "",
+  lastName: "",
+  userImageBytes: "",
+  imageFileExtension: "",
+};
+
+const EMPTY_LOGOUT_REQUEST: LogoutRequest = {
+  token: "",
+};
+
+const EMPTY_PAGED_USER_REQUEST: PagedUserItemRequest = {
+  token: "",
+  userAlias: "",
+  pageSize: 0,
+  lastItem: null,
+};
+
+const EMPTY_PAGED_STATUS_REQUEST: PagedStatusItemRequest = {
+  token: "",
+  userAlias: "",
+  pageSize: 0,
+  lastItem: null,
+};
+
+const EMPTY_POST_STATUS_REQUEST: PostStatusRequest = {
+  token: "",
+  status: EMPTY_STATUS_DTO,
+};
+
+const EMPTY_GET_USER_REQUEST: GetUserRequest = {
+  token: "",
+  alias: "",
+};
+
+const EMPTY_FOLLOWER_STATUS_REQUEST: GetIsFollowerStatusRequest = {
+  token: "",
+  user: EMPTY_USER_DTO,
+  selectedUser: EMPTY_USER_DTO,
+};
+
+const EMPTY_FOLLOW_COUNT_REQUEST: GetFollowCountRequest = {
+  token: "",
+  user: EMPTY_USER_DTO,
+};
+
+const EMPTY_FOLLOW_REQUEST: FollowRequest = {
+  token: "",
+  userToFollow: EMPTY_USER_DTO,
+};
+
+const EMPTY_UNFOLLOW_REQUEST: UnfollowRequest = {
+  token: "",
+  userToUnfollow: EMPTY_USER_DTO,
+};
 
 beforeAll(async () => {
   [authenticatedUser, authToken] = await new ServerFacade().login(
@@ -108,4 +190,76 @@ describe("ServerFacade.getFollowerCount", () => {
     expect(followerCount).toBeGreaterThanOrEqual(1);
     expect(followerCount).toBeLessThanOrEqual(10);
   });
+});
+
+describe("ServerFacade empty requests", () => {
+  const testCases: Array<{
+    endpoint: string;
+    action: () => Promise<unknown>;
+  }> = [
+    {
+      endpoint: "POST /register",
+      action: () => serverFacade.register(EMPTY_REGISTER_REQUEST),
+    },
+    {
+      endpoint: "POST /login",
+      action: () => serverFacade.login(EMPTY_LOGIN_REQUEST),
+    },
+    {
+      endpoint: "POST /logout",
+      action: () => serverFacade.logout(EMPTY_LOGOUT_REQUEST),
+    },
+    {
+      endpoint: "POST /followees",
+      action: () => serverFacade.getMoreFollowees(EMPTY_PAGED_USER_REQUEST),
+    },
+    {
+      endpoint: "POST /followers",
+      action: () => serverFacade.getMoreFollowers(EMPTY_PAGED_USER_REQUEST),
+    },
+    {
+      endpoint: "POST /feed-items",
+      action: () => serverFacade.loadMoreFeedItems(EMPTY_PAGED_STATUS_REQUEST),
+    },
+    {
+      endpoint: "POST /story-items",
+      action: () => serverFacade.loadMoreStoryItems(EMPTY_PAGED_STATUS_REQUEST),
+    },
+    {
+      endpoint: "POST /post-status",
+      action: () => serverFacade.postStatus(EMPTY_POST_STATUS_REQUEST),
+    },
+    {
+      endpoint: "POST /user",
+      action: () => serverFacade.getUser(EMPTY_GET_USER_REQUEST),
+    },
+    {
+      endpoint: "POST /is-follower-status",
+      action: () =>
+        serverFacade.getIsFollowerStatus(EMPTY_FOLLOWER_STATUS_REQUEST),
+    },
+    {
+      endpoint: "POST /followee-count",
+      action: () => serverFacade.getFolloweeCount(EMPTY_FOLLOW_COUNT_REQUEST),
+    },
+    {
+      endpoint: "POST /follower-count",
+      action: () => serverFacade.getFollowerCount(EMPTY_FOLLOW_COUNT_REQUEST),
+    },
+    {
+      endpoint: "POST /follow",
+      action: () => serverFacade.follow(EMPTY_FOLLOW_REQUEST),
+    },
+    {
+      endpoint: "POST /unfollow",
+      action: () => serverFacade.unfollow(EMPTY_UNFOLLOW_REQUEST),
+    },
+  ];
+
+  it.each(testCases)(
+    "$endpoint returns 400",
+    async ({ action }) => {
+      expectBadRequest(await captureHttpResult(action));
+    },
+  );
 });

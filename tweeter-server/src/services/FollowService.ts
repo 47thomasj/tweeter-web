@@ -1,4 +1,11 @@
+// Partially written by AI.
+
 import { FakeData, User, UserDto } from "tweeter-shared";
+import {
+  requireNonEmptyStrings,
+  requirePositiveNumber,
+  requireUserDto,
+} from "./RequestValidation";
 
 export class FollowService {
   public async loadMoreFollowees(
@@ -7,6 +14,8 @@ export class FollowService {
     pageSize: number,
     lastItem: UserDto | null,
   ): Promise<[UserDto[], boolean]> {
+    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+
     // TODO: Replace with the result of calling server
     return this.getFakeData(lastItem, pageSize, userAlias);
   }
@@ -17,8 +26,24 @@ export class FollowService {
     pageSize: number,
     lastItem: UserDto | null,
   ): Promise<[UserDto[], boolean]> {
+    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+
     // TODO: Replace with the result of calling server
     return this.getFakeData(lastItem, pageSize, userAlias);
+  }
+
+  private validatePageRequest(
+    token: string,
+    userAlias: string,
+    pageSize: number,
+    lastItem: UserDto | null,
+  ): void {
+    requireNonEmptyStrings(token, userAlias);
+    requirePositiveNumber(pageSize);
+
+    if (lastItem !== null) {
+      requireUserDto(lastItem);
+    }
   }
 
   private async getFakeData(

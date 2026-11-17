@@ -15,8 +15,10 @@ import type { DataPage } from "../DataPage";
 export abstract class DynamoDao<T, KeyArgs extends unknown[]>
   implements Dao<T, KeyArgs>
 {
-  private readonly tableName: string;
-  private readonly client = DynamoDBDocumentClient.from(new DynamoDBClient());
+  protected readonly tableName: string;
+  protected readonly client = DynamoDBDocumentClient.from(
+    new DynamoDBClient(),
+  );
 
   public constructor(tableName: string) {
     this.tableName = tableName;

@@ -3,15 +3,18 @@ import type { DaoFactory } from "../DaoFactory";
 import type { FollowDao } from "../FollowDao";
 import type { UserDao } from "../UserDao";
 import { DynamoFollowDao } from "./DynamoFollowDao";
+import { DynamoUserDao } from "./DynamoUserDao";
 
 export class DynamoDaoFactory implements DaoFactory {
   private readonly followDao: FollowDao;
+  private readonly userDao: UserDao;
 
   public constructor(
-    private readonly userDao?: UserDao,
+    userTableName = "users",
     followTableName = "follows",
     followIndexName = "follows_index",
   ) {
+    this.userDao = new DynamoUserDao(userTableName);
     this.followDao = new DynamoFollowDao(
       followTableName,
       followIndexName,
@@ -23,10 +26,6 @@ export class DynamoDaoFactory implements DaoFactory {
   }
 
   public getUserDao(): UserDao {
-    if (this.userDao === undefined) {
-      throw new Error("Dynamo user DAO has not been implemented");
-    }
-
     return this.userDao;
   }
 }

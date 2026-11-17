@@ -9,12 +9,15 @@ import {
 import type { DaoFactory } from "../dao/DaoFactory";
 import type { FollowDao } from "../dao/FollowDao";
 import type { UserPage } from "../dao/DataPage";
+import type { UserDao } from "../dao/UserDao";
 
 export class FollowService {
   private readonly followDao: FollowDao;
+  private readonly userDao: UserDao;
 
   public constructor(private readonly daoFactory: DaoFactory) {
     this.followDao = daoFactory.getFollowDao();
+    this.userDao = daoFactory.getUserDao();
   }
 
   public async loadMoreFollowees(
@@ -70,17 +73,15 @@ export class FollowService {
   }
 
   private async loadUsers(handles: string[]): Promise<UserDto[]> {
-    const userDao = this.daoFactory.getUserDao();
+    const usersByAlias = await this.userDao.getBatchUsers(handles);
 
-    return Promise.all(
-      handles.map(async (handle) => {
-        const user = await userDao.getItem(handle);
-        if (user === undefined) {
-          throw new Error(`User '${handle}' referenced by a follow was not found`);
-        }
+    return handles.map((handle) => {
+      const user = usersByAlias.get(handle);
+      if (user === undefined) {
+        throw new Error(`User '${handle}' referenced by a follow was not found`);
+      }
 
-        return user;
-      }),
-    );
+      return user;
+    });
   }
 }

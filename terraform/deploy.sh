@@ -11,6 +11,6 @@ npm run build
 cd terraform
 terraform fmt
 terraform validate
-terraform apply "$@"
+terraform apply "$@" --auto-approve
 
 rm *.zip

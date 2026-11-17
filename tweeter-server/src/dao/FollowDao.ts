@@ -1,16 +1,27 @@
 // Partially written by AI.
-import type { UserPage } from "./DataPage";
+import type { Dao } from "./Dao";
+import type { DataPage } from "./DataPage";
 
-export interface FollowDao {
+export interface FollowRelation {
+  followerHandle: string;
+  followeeHandle: string;
+}
+
+export interface FollowDao
+  extends Dao<
+    FollowRelation,
+    [followerHandle: string, followeeHandle: string]
+  >
+{
   getPageOfFollowees(
     followerHandle: string,
     pageSize: number,
     lastFolloweeHandle?: string,
-  ): Promise<UserPage>;
+  ): Promise<DataPage<FollowRelation>>;
 
   getPageOfFollowers(
     followeeHandle: string,
     pageSize: number,
     lastFollowerHandle?: string,
-  ): Promise<UserPage>;
+  ): Promise<DataPage<FollowRelation>>;
 }

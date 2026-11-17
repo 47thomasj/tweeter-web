@@ -6,16 +6,16 @@ import {
   requirePositiveNumber,
   requireUserDto,
 } from "./RequestValidation";
-import { DynamoFollowDao } from "../dao/dynamo/DynamoFollowDao";
+import type { DaoFactory } from "../dao/DaoFactory";
 import type { FollowDao } from "../dao/FollowDao";
 import type { UserPage } from "../dao/DataPage";
-import type { UserDao } from "../dao/UserDao";
 
 export class FollowService {
-  public constructor(
-    private readonly followDao: FollowDao = new DynamoFollowDao("follows"),
-    private readonly userDao?: UserDao,
-  ) {}
+  private readonly followDao: FollowDao;
+
+  public constructor(private readonly daoFactory: DaoFactory) {
+    this.followDao = daoFactory.getFollowDao();
+  }
 
   public async loadMoreFollowees(
     token: string,
@@ -70,10 +70,7 @@ export class FollowService {
   }
 
   private async loadUsers(handles: string[]): Promise<UserDto[]> {
-    const userDao = this.userDao;
-    if (userDao === undefined) {
-      throw new Error("User DAO has not been configured");
-    }
+    const userDao = this.daoFactory.getUserDao();
 
     return Promise.all(
       handles.map(async (handle) => {

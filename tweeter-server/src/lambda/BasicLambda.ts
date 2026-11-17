@@ -1,8 +1,14 @@
 // Partially written by AI.
 
 import type { TweeterResponse } from "tweeter-shared";
+import type { DaoFactory } from "../dao/DaoFactory";
+import { DynamoDaoFactory } from "../dao/dynamo/DynamoDaoFactory";
 
-type ServiceConstructor<TService> = new () => TService;
+const daoFactory: DaoFactory = new DynamoDaoFactory();
+
+type ServiceConstructor<TService> = new (
+  daoFactory: DaoFactory,
+) => TService;
 
 export async function handle<
   TService,
@@ -12,9 +18,9 @@ export async function handle<
   ServiceClass: ServiceConstructor<TService>,
   action: (service: TService) => Promise<TPayload>,
 ): Promise<TResponse> {
-  const service = new ServiceClass();
   let payload: TPayload = {} as TPayload;
   try {
+    const service = new ServiceClass(daoFactory);
     payload = await action(service);
   } catch (error) {
     return {

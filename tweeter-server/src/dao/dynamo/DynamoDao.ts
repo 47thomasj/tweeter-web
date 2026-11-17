@@ -1,15 +1,20 @@
 // Partially written by AI.
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
-    DeleteCommand,
+  DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
   type GetCommandInput,
   PutCommand,
+  QueryCommand,
+  type QueryCommandInput,
 } from "@aws-sdk/lib-dynamodb";
-import { Dao } from "../Dao";
+import type { Dao } from "../Dao";
+import type { DataPage } from "../DataPage";
 
-export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<T, KeyArgs> {
+export abstract class DynamoDao<T, KeyArgs extends unknown[]>
+  implements Dao<T, KeyArgs>
+{
   private readonly tableName: string;
   private readonly client = DynamoDBDocumentClient.from(new DynamoDBClient());
 
@@ -33,8 +38,9 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<T, 
    * Converts a raw read item into a known item.
    * @param readItem.
    */
-  protected abstract produceItemFromReadItem(readItem: Record<string, any>): T;
-
+  protected abstract produceItemFromReadItem(
+    readItem: Record<string, unknown>,
+  ): T;
 
   public async putItem(item: T): Promise<void> {
     const params = {
@@ -62,5 +68,23 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<T, 
       Key: this.produceKey(...args),
     };
     await this.client.send(new DeleteCommand(params));
+  }
+
+  protected async queryPage(
+    params: Omit<QueryCommandInput, "TableName">,
+  ): Promise<DataPage<T>> {
+    const output = await this.client.send(
+      new QueryCommand({
+        ...params,
+        TableName: this.tableName,
+      }),
+    );
+
+    return {
+      items: (output.Items ?? []).map((item) =>
+        this.produceItemFromReadItem(item),
+      ),
+      hasMore: output.LastEvaluatedKey !== undefined,
+    };
   }
 }

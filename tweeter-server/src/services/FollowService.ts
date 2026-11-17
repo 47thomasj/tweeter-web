@@ -6,18 +6,21 @@ import {
   requirePositiveNumber,
   requireUserDto,
 } from "./RequestValidation";
+import { DynamoFollowDao } from "../dao/dynamo/DynamoFollowDao";
+import { FollowDao } from "../dao/FollowDao";
+import { UserPage } from "../dao/DataPage";
 
 export class FollowService {
+  private readonly followDao: FollowDao = new DynamoFollowDao("follows");
+
   public async loadMoreFollowees(
     token: string,
     userAlias: string,
     pageSize: number,
     lastItem: UserDto | null,
-  ): Promise<[UserDto[], boolean]> {
+  ): Promise<UserPage> {
     this.validatePageRequest(token, userAlias, pageSize, lastItem);
-
-    // TODO: Replace with the result of calling server
-    return this.getFakeData(lastItem, pageSize, userAlias);
+    return this.followDao.getPageOfFollowees(userAlias, pageSize, lastItem?.alias);
   }
 
   public async loadMoreFollowers(
@@ -25,11 +28,9 @@ export class FollowService {
     userAlias: string,
     pageSize: number,
     lastItem: UserDto | null,
-  ): Promise<[UserDto[], boolean]> {
-    this.validatePageRequest(token, userAlias, pageSize, lastItem);
-
-    // TODO: Replace with the result of calling server
-    return this.getFakeData(lastItem, pageSize, userAlias);
+  ): Promise<UserPage> {
+    this.validatePageRequest(token, userAlias, pageSize, lastItem); 
+    return this.followDao.getPageOfFollowers(userAlias, pageSize, lastItem?.alias);
   }
 
   private validatePageRequest(

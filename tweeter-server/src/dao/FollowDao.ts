@@ -1,6 +1,16 @@
-import { UserDto } from "tweeter-shared";
+// Partially written by AI.
+import type { UserPage } from "./DataPage";
 
 export interface FollowDao {
-    getFollowees(userId: string, pageSize: number, lastItem: string): Promise<UserDto[]>;
-    getFollowers(userId: string, pageSize: number, lastItem: string): Promise<UserDto[]>;
+  getPageOfFollowees(
+    followerHandle: string,
+    pageSize: number,
+    lastFolloweeHandle?: string,
+  ): Promise<UserPage>;
+
+  getPageOfFollowers(
+    followeeHandle: string,
+    pageSize: number,
+    lastFollowerHandle?: string,
+  ): Promise<UserPage>;
 }

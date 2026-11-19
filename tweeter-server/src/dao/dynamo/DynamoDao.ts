@@ -1,6 +1,9 @@
 // Partially written by AI.
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
+  BatchGetCommand,
+  type BatchGetCommandInput,
+  type BatchGetCommandOutput,
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
@@ -13,9 +16,16 @@ import {
 import type { Dao } from "../Dao";
 import type { DataPage } from "../DataPage";
 
+type BatchKeys = NonNullable<
+  NonNullable<BatchGetCommandInput["RequestItems"]>[string]["Keys"]
+>;
+
 export abstract class DynamoDao<T, KeyArgs extends unknown[]>
   implements Dao<T, KeyArgs>
 {
+  private static readonly maxBatchSize = 100;
+  private static readonly maxBatchAttempts = 5;
+
   protected readonly tableName: string;
   protected readonly client = DynamoDBDocumentClient.from(
     new DynamoDBClient(),
@@ -43,7 +53,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
    * Converts a raw read item into a known item.
    * @param readItem.
    */
-  protected abstract produceItemFromReadItem(
+  protected abstract produceFeedItemFromReadItem(
     readItem: Record<string, unknown>,
   ): T;
 
@@ -64,7 +74,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
     const output = await this.client.send(new GetCommand(params));
     return output.Item === undefined
       ? undefined
-      : this.produceItemFromReadItem(output.Item);
+      : this.produceFeedItemFromReadItem(output.Item);
   }
 
   public async deleteItem(...args: KeyArgs): Promise<void> {
@@ -87,10 +97,84 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
 
     return {
       items: (output.Items ?? []).map((item) =>
-        this.produceItemFromReadItem(item),
+        this.produceFeedItemFromReadItem(item),
       ),
       hasMore: output.LastEvaluatedKey !== undefined,
     };
+  }
+
+  protected async batchGetItems(
+    keyArguments: readonly KeyArgs[],
+  ): Promise<T[]> {
+    const uniqueKeys = new Map<string, BatchKeys[number]>();
+    for (const args of keyArguments) {
+      const key = this.produceKey(...args);
+      if (key === undefined) {
+        throw new Error(
+          `Could not produce a DynamoDB key for '${this.tableName}'`,
+        );
+      }
+      uniqueKeys.set(JSON.stringify(key), key);
+    }
+
+    const keys = [...uniqueKeys.values()];
+    const items: T[] = [];
+    for (
+      let start = 0;
+      start < keys.length;
+      start += DynamoDao.maxBatchSize
+    ) {
+      await this.loadBatch(
+        keys.slice(start, start + DynamoDao.maxBatchSize),
+        items,
+      );
+    }
+
+    return items;
+  }
+
+  private async loadBatch(
+    keys: BatchKeys,
+    items: T[],
+  ): Promise<void> {
+    let pendingKeys = keys;
+    let attempt = 0;
+
+    while (pendingKeys.length > 0) {
+      if (attempt >= DynamoDao.maxBatchAttempts) {
+        throw new Error(
+          `DynamoDB did not process all batch keys for '${this.tableName}'`,
+        );
+      }
+
+      const output: BatchGetCommandOutput = await this.client.send(
+        new BatchGetCommand({
+          RequestItems: {
+            [this.tableName]: {
+              Keys: pendingKeys,
+            },
+          },
+        }),
+      );
+
+      for (const readItem of output.Responses?.[this.tableName] ?? []) {
+        items.push(this.produceFeedItemFromReadItem(readItem));
+      }
+
+      pendingKeys =
+        output.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
+      if (pendingKeys.length > 0) {
+        await this.waitBeforeBatchRetry(attempt);
+      }
+      attempt += 1;
+    }
+  }
+
+  private async waitBeforeBatchRetry(attempt: number): Promise<void> {
+    const delayMilliseconds = 25 * 2 ** attempt;
+    await new Promise((resolve) =>
+      setTimeout(resolve, delayMilliseconds),
+    );
   }
 
   protected readRecord(

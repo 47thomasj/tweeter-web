@@ -69,6 +69,25 @@ resource "aws_dynamodb_table" "statuses" {
   }
 }
 
+resource "aws_dynamodb_table" "feed" {
+  name           = "feed"
+  billing_mode   = "PROVISIONED"
+  hash_key       = "feed_user_alias"
+  range_key      = "timestamp"
+  read_capacity  = 5
+  write_capacity = 5
+
+  attribute {
+    name = "feed_user_alias"
+    type = "S"
+  }
+
+  attribute {
+    name = "timestamp"
+    type = "N"
+  }
+}
+
 data "aws_iam_policy_document" "lambda_dynamodb_access" {
   statement {
     actions = [
@@ -84,6 +103,7 @@ data "aws_iam_policy_document" "lambda_dynamodb_access" {
       aws_dynamodb_table.follows.arn,
       "${aws_dynamodb_table.follows.arn}/index/*",
       aws_dynamodb_table.statuses.arn,
+      aws_dynamodb_table.feed.arn,
     ]
   }
 }

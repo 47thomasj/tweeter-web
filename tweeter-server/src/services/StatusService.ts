@@ -1,19 +1,22 @@
 // Partially written by AI.
 
-import { FakeData, Status, StatusDto } from "tweeter-shared";
+import type { StatusDto } from "tweeter-shared";
 import {
   requireNonEmptyStrings,
   requirePositiveNumber,
   requireStatusDto,
 } from "./RequestValidation";
 import type { DaoFactory } from "../dao/DaoFactory";
+import type { FeedDao } from "../dao/FeedDao";
 import type { StatusDao } from "../dao/StatusDao";
 import { Service } from "./Service";
 
 export class StatusService implements Service {
+  private readonly feedDao: FeedDao;
   private readonly statusDao: StatusDao;
 
   public constructor(daoFactory: DaoFactory) {
+    this.feedDao = daoFactory.getFeedDao();
     this.statusDao = daoFactory.getStatusDao();
   }
 
@@ -25,8 +28,31 @@ export class StatusService implements Service {
   ): Promise<[StatusDto[], boolean]> {
     this.validatePageRequest(token, userAlias, pageSize, lastItem);
 
-    // TODO: Replace when the precomputed feed DAO is implemented
-    return this.getFakeData(lastItem, pageSize, userAlias);
+    const page = await this.feedDao.getPageOfFeedItems(
+      userAlias,
+      pageSize,
+      lastItem?.timestamp,
+    );
+    const statuses = await this.statusDao.getBatchStatuses(
+      page.items.map((item) => ({
+        userAlias: item.statusUserAlias,
+        timestamp: item.timestamp,
+      })),
+    );
+
+    return [
+      page.items.map((item, index) => {
+        const status = statuses[index];
+        if (status === undefined) {
+          throw new Error(
+            `Status '${item.statusUserAlias}:${item.timestamp}' referenced by a feed was not found`,
+          );
+        }
+
+        return status;
+      }),
+      page.hasMore,
+    ];
   }
 
   public async loadMoreStoryItems(
@@ -69,16 +95,4 @@ export class StatusService implements Service {
     }
   }
 
-  private async getFakeData(
-    lastItem: StatusDto | null,
-    pageSize: number,
-    userAlias: string,
-  ): Promise<[StatusDto[], boolean]> {
-    const [items, hasMore] = FakeData.instance.getPageOfStatuses(
-      Status.fromDto(lastItem),
-      pageSize,
-    );
-    const dtos = items.map((status) => status.dto);
-    return [dtos, hasMore];
-  }
 }

@@ -7,7 +7,7 @@ import {
   type UserDto,
 } from "tweeter-shared";
 import type { DataPage } from "../DataPage";
-import type { StatusDao } from "../StatusDao";
+import type { StatusDao, StatusKey } from "../StatusDao";
 import { DynamoDao } from "./DynamoDao";
 
 export class DynamoStatusDao
@@ -44,7 +44,7 @@ export class DynamoStatusDao
     };
   }
 
-  protected produceItemFromReadItem(
+  protected produceFeedItemFromReadItem(
     readItem: Record<string, unknown>,
   ): StatusDto {
     return {
@@ -53,6 +53,32 @@ export class DynamoStatusDao
       timestamp: this.readNumber(readItem, this.timestampAttr),
       segments: this.readSegments(readItem),
     };
+  }
+
+  public async getBatchStatuses(
+    keys: readonly StatusKey[],
+  ): Promise<ReadonlyArray<StatusDto | undefined>> {
+    const statuses = await this.batchGetItems(
+      keys.map(
+        (key) =>
+          [key.userAlias, key.timestamp] as [
+            userAlias: string,
+            timestamp: number,
+          ],
+      ),
+    );
+    const statusesByKey = new Map(
+      statuses.map((status) => [
+        this.makeStatusKey(status.user.alias, status.timestamp),
+        status,
+      ]),
+    );
+
+    return keys.map((key) =>
+      statusesByKey.get(
+        this.makeStatusKey(key.userAlias, key.timestamp),
+      ),
+    );
   }
 
   public async getPageOfStoryItems(
@@ -76,6 +102,13 @@ export class DynamoStatusDao
             },
           }),
     });
+  }
+
+  private makeStatusKey(
+    userAlias: string,
+    timestamp: number,
+  ): string {
+    return JSON.stringify([userAlias, timestamp]);
   }
 
   private readUser(readItem: Record<string, unknown>): UserDto {

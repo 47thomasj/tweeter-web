@@ -31,7 +31,7 @@ export class DynamoFollowDao
     };
   }
 
-  protected produceItemFromReadItem(
+  protected produceFeedItemFromReadItem(
     readItem: Record<string, unknown>,
   ): FollowRelation {
     return {

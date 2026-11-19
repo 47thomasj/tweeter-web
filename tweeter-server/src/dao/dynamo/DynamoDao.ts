@@ -20,16 +20,15 @@ type BatchKeys = NonNullable<
   NonNullable<BatchGetCommandInput["RequestItems"]>[string]["Keys"]
 >;
 
-export abstract class DynamoDao<T, KeyArgs extends unknown[]>
-  implements Dao<T, KeyArgs>
-{
+export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
+  T,
+  KeyArgs
+> {
   private static readonly maxBatchSize = 100;
   private static readonly maxBatchAttempts = 5;
 
   protected readonly tableName: string;
-  protected readonly client = DynamoDBDocumentClient.from(
-    new DynamoDBClient(),
-  );
+  protected readonly client = DynamoDBDocumentClient.from(new DynamoDBClient());
 
   public constructor(tableName: string) {
     this.tableName = tableName;
@@ -39,9 +38,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
    * Converts a known item into an "Item" map that can be used to put items to the table.
    * @param item.
    */
-  protected abstract mapItem(
-    item: T,
-  ): NonNullable<PutCommandInput["Item"]>;
+  protected abstract mapItem(item: T): NonNullable<PutCommandInput["Item"]>;
 
   /**
    * Returns the key of the item to be used to get the item from the table.
@@ -119,11 +116,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
 
     const keys = [...uniqueKeys.values()];
     const items: T[] = [];
-    for (
-      let start = 0;
-      start < keys.length;
-      start += DynamoDao.maxBatchSize
-    ) {
+    for (let start = 0; start < keys.length; start += DynamoDao.maxBatchSize) {
       await this.loadBatch(
         keys.slice(start, start + DynamoDao.maxBatchSize),
         items,
@@ -133,10 +126,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
     return items;
   }
 
-  private async loadBatch(
-    keys: BatchKeys,
-    items: T[],
-  ): Promise<void> {
+  private async loadBatch(keys: BatchKeys, items: T[]): Promise<void> {
     let pendingKeys = keys;
     let attempt = 0;
 
@@ -161,8 +151,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
         items.push(this.produceFeedItemFromReadItem(readItem));
       }
 
-      pendingKeys =
-        output.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
+      pendingKeys = output.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
       if (pendingKeys.length > 0) {
         await this.waitBeforeBatchRetry(attempt);
       }
@@ -172,23 +161,15 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]>
 
   private async waitBeforeBatchRetry(attempt: number): Promise<void> {
     const delayMilliseconds = 25 * 2 ** attempt;
-    await new Promise((resolve) =>
-      setTimeout(resolve, delayMilliseconds),
-    );
+    await new Promise((resolve) => setTimeout(resolve, delayMilliseconds));
   }
 
   protected readRecord(
     value: unknown,
     attributeName: string,
   ): Record<string, unknown> {
-    if (
-      typeof value !== "object" ||
-      value === null ||
-      Array.isArray(value)
-    ) {
-      throw new Error(
-        `Missing object attribute '${attributeName}'`,
-      );
+    if (typeof value !== "object" || value === null || Array.isArray(value)) {
+      throw new Error(`Missing object attribute '${attributeName}'`);
     }
 
     return value as Record<string, unknown>;

@@ -71,10 +71,7 @@ export class StatusService implements Service {
     return [page.items, page.hasMore];
   }
 
-  public async postStatus(
-    token: string,
-    newStatus: StatusDto,
-  ): Promise<void> {
+  public async postStatus(token: string, newStatus: StatusDto): Promise<void> {
     requireNonEmptyStrings(token);
     requireStatusDto(newStatus);
 
@@ -94,5 +91,4 @@ export class StatusService implements Service {
       requireStatusDto(lastItem);
     }
   }
-
 }

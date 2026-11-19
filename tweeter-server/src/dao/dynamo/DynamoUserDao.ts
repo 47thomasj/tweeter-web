@@ -44,8 +44,6 @@ export class DynamoUserDao
     const users = await this.batchGetItems(
       aliases.map((alias) => [alias] as [alias: string]),
     );
-    return new Map(
-      users.map((user) => [user.alias, user]),
-    );
+    return new Map(users.map((user) => [user.alias, user]));
   }
 }

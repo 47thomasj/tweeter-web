@@ -8,12 +8,10 @@ export interface FeedItem {
   timestamp: number;
 }
 
-export interface FeedDao
-  extends Dao<
-    FeedItem,
-    [feedUserAlias: string, timestamp: number]
-  >
-{
+export interface FeedDao extends Dao<
+  FeedItem,
+  [feedUserAlias: string, timestamp: number]
+> {
   getPageOfFeedItems(
     feedUserAlias: string,
     pageSize: number,

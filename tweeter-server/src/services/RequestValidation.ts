@@ -14,14 +14,8 @@ export function requireNonEmptyStrings(
   }
 }
 
-export function requirePositiveNumber(
-  value: number | null | undefined,
-): void {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value) ||
-    value <= 0
-  ) {
+export function requirePositiveNumber(value: number | null | undefined): void {
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
     throwBadRequest();
   }
 }
@@ -34,9 +28,7 @@ export function requireNonEmptyBytes(
   }
 }
 
-export function requireUserDto(
-  user: UserDto | null | undefined,
-): void {
+export function requireUserDto(user: UserDto | null | undefined): void {
   if (user === null || user === undefined) {
     throwBadRequest();
   }
@@ -49,9 +41,7 @@ export function requireUserDto(
   );
 }
 
-export function requireStatusDto(
-  status: StatusDto | null | undefined,
-): void {
+export function requireStatusDto(status: StatusDto | null | undefined): void {
   if (status === null || status === undefined) {
     throwBadRequest();
   }

@@ -7,12 +7,10 @@ export interface FollowRelation {
   followeeHandle: string;
 }
 
-export interface FollowDao
-  extends Dao<
-    FollowRelation,
-    [followerHandle: string, followeeHandle: string]
-  >
-{
+export interface FollowDao extends Dao<
+  FollowRelation,
+  [followerHandle: string, followeeHandle: string]
+> {
   getPageOfFollowees(
     followerHandle: string,
     pageSize: number,

@@ -8,12 +8,10 @@ export interface StatusKey {
   timestamp: number;
 }
 
-export interface StatusDao
-  extends Dao<
-    StatusDto,
-    [userAlias: string, timestamp: number]
-  >
-{
+export interface StatusDao extends Dao<
+  StatusDto,
+  [userAlias: string, timestamp: number]
+> {
   getBatchStatuses(
     keys: readonly StatusKey[],
   ): Promise<ReadonlyArray<StatusDto | undefined>>;

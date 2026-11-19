@@ -11,10 +11,7 @@ import type { StatusDao, StatusKey } from "../StatusDao";
 import { DynamoDao } from "./DynamoDao";
 
 export class DynamoStatusDao
-  extends DynamoDao<
-    StatusDto,
-    [userAlias: string, timestamp: number]
-  >
+  extends DynamoDao<StatusDto, [userAlias: string, timestamp: number]>
   implements StatusDao
 {
   private readonly userAliasAttr = "user_alias";
@@ -23,9 +20,7 @@ export class DynamoStatusDao
   private readonly userAttr = "user";
   private readonly segmentsAttr = "segments";
 
-  protected mapItem(
-    status: StatusDto,
-  ): NonNullable<PutCommandInput["Item"]> {
+  protected mapItem(status: StatusDto): NonNullable<PutCommandInput["Item"]> {
     return {
       [this.userAliasAttr]: status.user.alias,
       [this.timestampAttr]: status.timestamp,
@@ -75,9 +70,7 @@ export class DynamoStatusDao
     );
 
     return keys.map((key) =>
-      statusesByKey.get(
-        this.makeStatusKey(key.userAlias, key.timestamp),
-      ),
+      statusesByKey.get(this.makeStatusKey(key.userAlias, key.timestamp)),
     );
   }
 
@@ -104,18 +97,12 @@ export class DynamoStatusDao
     });
   }
 
-  private makeStatusKey(
-    userAlias: string,
-    timestamp: number,
-  ): string {
+  private makeStatusKey(userAlias: string, timestamp: number): string {
     return JSON.stringify([userAlias, timestamp]);
   }
 
   private readUser(readItem: Record<string, unknown>): UserDto {
-    const user = this.readRecord(
-      readItem[this.userAttr],
-      this.userAttr,
-    );
+    const user = this.readRecord(readItem[this.userAttr], this.userAttr);
 
     return {
       firstName: this.readString(user, "firstName"),
@@ -125,14 +112,10 @@ export class DynamoStatusDao
     };
   }
 
-  private readSegments(
-    readItem: Record<string, unknown>,
-  ): PostSegmentDto[] {
+  private readSegments(readItem: Record<string, unknown>): PostSegmentDto[] {
     const value = readItem[this.segmentsAttr];
     if (!Array.isArray(value)) {
-      throw new Error(
-        `Missing array attribute '${this.segmentsAttr}'`,
-      );
+      throw new Error(`Missing array attribute '${this.segmentsAttr}'`);
     }
 
     return value.map((segment, index) => {
@@ -147,17 +130,10 @@ export class DynamoStatusDao
 
       return {
         text: this.readString(segmentItem, "text"),
-        startPosition: this.readNumber(
-          segmentItem,
-          "startPosition",
-        ),
-        endPosition: this.readNumber(
-          segmentItem,
-          "endPosition",
-        ),
+        startPosition: this.readNumber(segmentItem, "startPosition"),
+        endPosition: this.readNumber(segmentItem, "endPosition"),
         type: type as Type,
       };
     });
   }
-
 }

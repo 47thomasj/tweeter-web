@@ -5,19 +5,14 @@ import type { FeedDao, FeedItem } from "../FeedDao";
 import { DynamoDao } from "./DynamoDao";
 
 export class DynamoFeedDao
-  extends DynamoDao<
-    FeedItem,
-    [feedUserAlias: string, timestamp: number]
-  >
+  extends DynamoDao<FeedItem, [feedUserAlias: string, timestamp: number]>
   implements FeedDao
 {
   private readonly feedUserAliasAttr = "feed_user_alias";
   private readonly statusUserAliasAttr = "status_user_alias";
   private readonly timestampAttr = "timestamp";
 
-  protected mapItem(
-    item: FeedItem,
-  ): NonNullable<PutCommandInput["Item"]> {
+  protected mapItem(item: FeedItem): NonNullable<PutCommandInput["Item"]> {
     return {
       [this.feedUserAliasAttr]: item.feedUserAlias,
       [this.statusUserAliasAttr]: item.statusUserAlias,
@@ -25,10 +20,7 @@ export class DynamoFeedDao
     };
   }
 
-  protected produceKey(
-    feedUserAlias: string,
-    timestamp: number,
-  ) {
+  protected produceKey(feedUserAlias: string, timestamp: number) {
     return {
       [this.feedUserAliasAttr]: feedUserAlias,
       [this.timestampAttr]: timestamp,
@@ -39,18 +31,9 @@ export class DynamoFeedDao
     readItem: Record<string, unknown>,
   ): FeedItem {
     return {
-      feedUserAlias: this.readString(
-        readItem,
-        this.feedUserAliasAttr,
-      ),
-      statusUserAlias: this.readString(
-        readItem,
-        this.statusUserAliasAttr,
-      ),
-      timestamp: this.readNumber(
-        readItem,
-        this.timestampAttr,
-      ),
+      feedUserAlias: this.readString(readItem, this.feedUserAliasAttr),
+      statusUserAlias: this.readString(readItem, this.statusUserAliasAttr),
+      timestamp: this.readNumber(readItem, this.timestampAttr),
     };
   }
 

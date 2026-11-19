@@ -78,7 +78,9 @@ export class FollowService {
     return handles.map((handle) => {
       const user = usersByAlias.get(handle);
       if (user === undefined) {
-        throw new Error(`User '${handle}' referenced by a follow was not found`);
+        throw new Error(
+          `User '${handle}' referenced by a follow was not found`,
+        );
       }
 
       return user;

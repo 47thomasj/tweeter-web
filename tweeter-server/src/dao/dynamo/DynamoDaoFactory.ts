@@ -23,10 +23,7 @@ export class DynamoDaoFactory implements DaoFactory {
     feedTableName = "feed",
   ) {
     this.userDao = new DynamoUserDao(userTableName);
-    this.followDao = new DynamoFollowDao(
-      followTableName,
-      followIndexName,
-    );
+    this.followDao = new DynamoFollowDao(followTableName, followIndexName);
     this.statusDao = new DynamoStatusDao(statusTableName);
     this.feedDao = new DynamoFeedDao(feedTableName);
   }

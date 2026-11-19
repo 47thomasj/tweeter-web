@@ -39,7 +39,7 @@ export class DynamoStatusDao
     };
   }
 
-  protected produceFeedItemFromReadItem(
+  protected produceItemFromReadItem(
     readItem: Record<string, unknown>,
   ): StatusDto {
     return {

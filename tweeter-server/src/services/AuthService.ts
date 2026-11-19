@@ -1,22 +1,26 @@
 // Partially written by AI.
 
 import { Buffer } from "buffer";
-import { FakeData } from "tweeter-shared";
+import { AuthToken, type AuthTokenDto, type UserDto } from "tweeter-shared";
 import { Service } from "./Service";
-import { UserDto } from "tweeter-shared/src/model/dto/UserDto";
-import { AuthTokenDto } from "tweeter-shared/src/model/dto/AuthTokenDto";
 import {
   requireNonEmptyBytes,
   requireNonEmptyStrings,
 } from "./RequestValidation";
+import type { AuthDao } from "../dao/AuthDao";
 import type { DaoFactory } from "../dao/DaoFactory";
+import type { SessionDao } from "../dao/SessionDao";
 import type { UserDao } from "../dao/UserDao";
 import bcrypt from "bcryptjs";
 
 export class AuthService implements Service {
+  private readonly authDao: AuthDao;
+  private readonly sessionDao: SessionDao;
   private readonly userDao: UserDao;
 
   public constructor(daoFactory: DaoFactory) {
+    this.authDao = daoFactory.getAuthDao();
+    this.sessionDao = daoFactory.getSessionDao();
     this.userDao = daoFactory.getUserDao();
   }
 
@@ -26,14 +30,20 @@ export class AuthService implements Service {
   ): Promise<[UserDto, AuthTokenDto]> {
     requireNonEmptyStrings(alias, password);
 
-    const hashedPassword = this.hashPassword(password);
-    // TODO: Create an authToken for the User.
-
-    if (user === null) {
-      throw new Error("Invalid alias or password");
+    const [passwordHash, user] = await Promise.all([
+      this.authDao.getPasswordHash(alias),
+      this.userDao.getItem(alias),
+    ]);
+    if (passwordHash === undefined || user === undefined) {
+      throw new Error("Invalid alias");
+    }
+    if (!(await bcrypt.compare(password, passwordHash))) {
+      throw new Error("Invalid password");
     }
 
-    return [user.dto, FakeData.instance.authToken.dto];
+    const authToken = this.createAuthToken();
+    await this.sessionDao.putItem(authToken);
+    return [user, authToken];
   }
 
   public async register(
@@ -65,8 +75,22 @@ export class AuthService implements Service {
       imageUrl,
     };
 
-    await this.userDao.putItem(userDto);
-    // TODO: Add the user alias/password to the auth table with a token.
+    const [existingPasswordHash, existingUser] = await Promise.all([
+      this.authDao.getPasswordHash(alias),
+      this.userDao.getItem(alias),
+    ]);
+    if (existingPasswordHash !== undefined || existingUser !== undefined) {
+      throw new Error("Alias is already registered");
+    }
+
+    await Promise.all([
+      this.userDao.putItem(userDto),
+      this.authDao.putItem({
+        alias,
+        passwordHash: this.hashPassword(password),
+      }),
+    ]);
+
     const [user, token] = await this.login(alias, password);
 
     if (user === null) {
@@ -79,7 +103,7 @@ export class AuthService implements Service {
   public async logout(token: string): Promise<void> {
     requireNonEmptyStrings(token);
 
-    // TODO: Delete the token from the auth table.
+    await this.sessionDao.deleteItem(token);
   }
 
   private hashPassword(password: string): string {
@@ -88,5 +112,9 @@ export class AuthService implements Service {
 
   private createSaltFromPassword(password: string): string {
     return bcrypt.genSaltSync(10);
+  }
+
+  private createAuthToken(): AuthTokenDto {
+    return AuthToken.Generate().dto;
   }
 }

@@ -27,7 +27,7 @@ export class DynamoFeedDao
     };
   }
 
-  protected produceFeedItemFromReadItem(
+  protected produceItemFromReadItem(
     readItem: Record<string, unknown>,
   ): FeedItem {
     return {

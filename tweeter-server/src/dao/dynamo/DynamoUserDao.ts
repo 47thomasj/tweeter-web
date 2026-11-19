@@ -27,7 +27,7 @@ export class DynamoUserDao
     };
   }
 
-  protected produceFeedItemFromReadItem(
+  protected produceItemFromReadItem(
     readItem: Record<string, unknown>,
   ): UserDto {
     return {

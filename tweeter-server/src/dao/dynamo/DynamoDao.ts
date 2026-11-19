@@ -50,7 +50,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
    * Converts a raw read item into a known item.
    * @param readItem.
    */
-  protected abstract produceFeedItemFromReadItem(
+  protected abstract produceItemFromReadItem(
     readItem: Record<string, unknown>,
   ): T;
 
@@ -71,7 +71,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
     const output = await this.client.send(new GetCommand(params));
     return output.Item === undefined
       ? undefined
-      : this.produceFeedItemFromReadItem(output.Item);
+      : this.produceItemFromReadItem(output.Item);
   }
 
   public async deleteItem(...args: KeyArgs): Promise<void> {
@@ -94,7 +94,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
 
     return {
       items: (output.Items ?? []).map((item) =>
-        this.produceFeedItemFromReadItem(item),
+        this.produceItemFromReadItem(item),
       ),
       hasMore: output.LastEvaluatedKey !== undefined,
     };
@@ -148,7 +148,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
       );
 
       for (const readItem of output.Responses?.[this.tableName] ?? []) {
-        items.push(this.produceFeedItemFromReadItem(readItem));
+        items.push(this.produceItemFromReadItem(readItem));
       }
 
       pendingKeys = output.UnprocessedKeys?.[this.tableName]?.Keys ?? [];

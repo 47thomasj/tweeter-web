@@ -41,6 +41,7 @@ export type {
 } from "./model/net/responses/UserResponse";
 
 // DTOs
+export type { AuthTokenDto } from "./model/dto/AuthTokenDto";
 export type { UserDto } from "./model/dto/UserDto";
 export type { PostSegmentDto } from "./model/dto/PostSegmentDto";
 export type { StatusDto } from "./model/dto/StatusDto";

@@ -1,15 +1,26 @@
 // Partially written by AI.
 
-import { FakeData, UserDto } from "tweeter-shared";
+import { UserDto } from "tweeter-shared";
 import { requireNonEmptyStrings, requireUserDto } from "./RequestValidation";
 import { Service } from "./Service";
+import type { DaoFactory } from "../dao/DaoFactory";
+import type { UserDao } from "../dao/UserDao";
+import type { FollowDao } from "../dao/FollowDao";
 
 export class UserService implements Service {
+  private readonly userDao: UserDao;
+  private readonly followDao: FollowDao;
+
+  public constructor(daoFactory: DaoFactory) {
+    this.userDao = daoFactory.getUserDao();
+    this.followDao = daoFactory.getFollowDao();
+  }
+
   public async getUser(token: string, alias: string): Promise<UserDto | null> {
     requireNonEmptyStrings(token, alias);
 
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.findUserByAlias(alias)?.dto ?? null;
+    const user = await this.userDao.getItem(alias);
+    return user ?? null;
   }
 
   public async getIsFollowerStatus(
@@ -21,24 +32,25 @@ export class UserService implements Service {
     requireUserDto(user);
     requireUserDto(selectedUser);
 
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.isFollower();
+    const followRelation = await this.followDao.getItem(
+      user.alias,
+      selectedUser.alias,
+    );
+    return followRelation !== undefined;
   }
 
   public async getFolloweeCount(token: string, user: UserDto): Promise<number> {
     requireNonEmptyStrings(token);
     requireUserDto(user);
 
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.getFolloweeCount(user.alias);
+    return this.followDao.getFolloweeCount(user.alias);
   }
 
   public async getFollowerCount(token: string, user: UserDto): Promise<number> {
     requireNonEmptyStrings(token);
     requireUserDto(user);
 
-    // TODO: Replace with the result of calling server
-    return FakeData.instance.getFollowerCount(user.alias);
+    return this.followDao.getFollowerCount(user.alias);
   }
 
   public async follow(
@@ -48,10 +60,10 @@ export class UserService implements Service {
     requireNonEmptyStrings(token);
     requireUserDto(userToFollow);
 
-    // Pause so we can see the follow message. Remove when connected to the server
-    await new Promise((f) => setTimeout(f, 2000));
-
-    // TODO: Call the server
+    await this.followDao.putItem({
+      followerHandle: user.alias,
+      followeeHandle: userToFollow.alias,
+    });
 
     const followerCount = await this.getFollowerCount(token, userToFollow);
     const followeeCount = await this.getFolloweeCount(token, userToFollow);
@@ -66,10 +78,7 @@ export class UserService implements Service {
     requireNonEmptyStrings(token);
     requireUserDto(userToUnfollow);
 
-    // Pause so we can see the unfollow message. Remove when connected to the server
-    await new Promise((f) => setTimeout(f, 2000));
-
-    // TODO: Call the server
+    await this.followDao.deleteItem(user.alias, userToUnfollow.alias);
 
     const followerCount = await this.getFollowerCount(token, userToUnfollow);
     const followeeCount = await this.getFolloweeCount(token, userToUnfollow);

@@ -11,6 +11,9 @@ export interface FollowDao extends Dao<
   FollowRelation,
   [followerHandle: string, followeeHandle: string]
 > {
+  getFolloweeCount(followerHandle: string): Promise<number>;
+  getFollowerCount(followeeHandle: string): Promise<number>;
+
   getPageOfFollowees(
     followerHandle: string,
     pageSize: number,

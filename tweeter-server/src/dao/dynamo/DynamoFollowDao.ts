@@ -1,4 +1,5 @@
 // Partially written by AI.
+import { QueryCommand, type QueryCommandInput } from "@aws-sdk/lib-dynamodb";
 import type { DataPage } from "../DataPage";
 import type { FollowDao, FollowRelation } from "../FollowDao";
 import { DynamoDao } from "./DynamoDao";
@@ -38,6 +39,25 @@ export class DynamoFollowDao
       followerHandle: this.readString(readItem, this.followerHandleAttr),
       followeeHandle: this.readString(readItem, this.followeeHandleAttr),
     };
+  }
+
+  public async getFolloweeCount(followerHandle: string): Promise<number> {
+    return this.queryCount({
+      KeyConditionExpression: `${this.followerHandleAttr} = :handle`,
+      ExpressionAttributeValues: {
+        ":handle": followerHandle,
+      },
+    });
+  }
+
+  public async getFollowerCount(followeeHandle: string): Promise<number> {
+    return this.queryCount({
+      KeyConditionExpression: `${this.followeeHandleAttr} = :handle`,
+      ExpressionAttributeValues: {
+        ":handle": followeeHandle,
+      },
+      IndexName: this.indexName,
+    });
   }
 
   public async getPageOfFollowees(
@@ -83,5 +103,32 @@ export class DynamoFollowDao
             },
           }),
     });
+  }
+
+  private async queryCount(
+    params: Omit<
+      QueryCommandInput,
+      "TableName" | "Select" | "ExclusiveStartKey"
+    >,
+  ): Promise<number> {
+    let count = 0;
+    let exclusiveStartKey: QueryCommandInput["ExclusiveStartKey"] | undefined;
+
+    do {
+      const output = await this.client.send(
+        new QueryCommand({
+          ...params,
+          TableName: this.tableName,
+          Select: "COUNT",
+          ...(exclusiveStartKey === undefined
+            ? {}
+            : { ExclusiveStartKey: exclusiveStartKey }),
+        }),
+      );
+      count += output.Count ?? 0;
+      exclusiveStartKey = output.LastEvaluatedKey;
+    } while (exclusiveStartKey !== undefined);
+
+    return count;
   }
 }

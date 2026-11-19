@@ -91,13 +91,7 @@ export class AuthService implements Service {
       }),
     ]);
 
-    const [user, token] = await this.login(alias, password);
-
-    if (user === null) {
-      throw new Error("Invalid registration");
-    }
-
-    return [user, token];
+    return await this.login(alias, password);
   }
 
   public async logout(token: string): Promise<void> {
@@ -107,11 +101,7 @@ export class AuthService implements Service {
   }
 
   private hashPassword(password: string): string {
-    return bcrypt.hashSync(password, this.createSaltFromPassword(password));
-  }
-
-  private createSaltFromPassword(password: string): string {
-    return bcrypt.genSaltSync(10);
+    return bcrypt.hashSync(password);
   }
 
   private createAuthToken(): AuthTokenDto {

@@ -15,9 +15,9 @@ import { DynamoUserDao } from "./DynamoUserDao";
 
 export class DynamoDaoFactory implements DaoFactory {
   private readonly authDao: AuthDao;
+  private readonly sessionDao: SessionDao
   private readonly feedDao: FeedDao;
   private readonly followDao: FollowDao;
-  private readonly sessionDao: SessionDao;
   private readonly statusDao: StatusDao;
   private readonly userDao: UserDao;
 
@@ -28,10 +28,10 @@ export class DynamoDaoFactory implements DaoFactory {
     statusTableName = "statuses",
     feedTableName = "feed",
     authTableName = "auth",
-    authTokensTableName = "auth_tokens",
+    sessionsTableName = "sessions",
   ) {
     this.authDao = new DynamoAuthDao(authTableName);
-    this.sessionDao = new DynamoSessionDao(authTokensTableName);
+    this.sessionDao = new DynamoSessionDao(sessionsTableName);
     this.userDao = new DynamoUserDao(userTableName);
     this.followDao = new DynamoFollowDao(followTableName, followIndexName);
     this.statusDao = new DynamoStatusDao(statusTableName);

@@ -14,7 +14,7 @@ import type { UserDao } from "../dao/UserDao";
 export class FollowService {
   private readonly followDao: FollowDao;
   private readonly userDao: UserDao;
-
+  
   public constructor(private readonly daoFactory: DaoFactory) {
     this.followDao = daoFactory.getFollowDao();
     this.userDao = daoFactory.getUserDao();

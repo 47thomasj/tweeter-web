@@ -101,8 +101,8 @@ resource "aws_dynamodb_table" "auth" {
   }
 }
 
-resource "aws_dynamodb_table" "auth_tokens" {
-  name           = "auth_tokens"
+resource "aws_dynamodb_table" "sessions" {
+  name           = "sessions"
   billing_mode   = "PROVISIONED"
   hash_key       = "token"
   read_capacity  = 3
@@ -136,7 +136,7 @@ data "aws_iam_policy_document" "lambda_dynamodb_access" {
       aws_dynamodb_table.statuses.arn,
       aws_dynamodb_table.feed.arn,
       aws_dynamodb_table.auth.arn,
-      aws_dynamodb_table.auth_tokens.arn,
+      aws_dynamodb_table.sessions.arn,
     ]
   }
 }

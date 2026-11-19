@@ -85,15 +85,4 @@ export class DynamoFollowDao
     });
   }
 
-  private readString(
-    readItem: Record<string, unknown>,
-    attributeName: string,
-  ): string {
-    const value = readItem[attributeName];
-    if (typeof value !== "string") {
-      throw new Error(`Missing string attribute '${attributeName}'`);
-    }
-
-    return value;
-  }
 }

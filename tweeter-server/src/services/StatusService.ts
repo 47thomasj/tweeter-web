@@ -6,9 +6,17 @@ import {
   requirePositiveNumber,
   requireStatusDto,
 } from "./RequestValidation";
+import type { DaoFactory } from "../dao/DaoFactory";
+import type { StatusDao } from "../dao/StatusDao";
 import { Service } from "./Service";
 
 export class StatusService implements Service {
+  private readonly statusDao: StatusDao;
+
+  public constructor(daoFactory: DaoFactory) {
+    this.statusDao = daoFactory.getStatusDao();
+  }
+
   public async loadMoreFeedItems(
     token: string,
     userAlias: string,
@@ -17,7 +25,7 @@ export class StatusService implements Service {
   ): Promise<[StatusDto[], boolean]> {
     this.validatePageRequest(token, userAlias, pageSize, lastItem);
 
-    // TODO: Replace with the result of calling server
+    // TODO: Replace when the precomputed feed DAO is implemented
     return this.getFakeData(lastItem, pageSize, userAlias);
   }
 
@@ -29,8 +37,12 @@ export class StatusService implements Service {
   ): Promise<[StatusDto[], boolean]> {
     this.validatePageRequest(token, userAlias, pageSize, lastItem);
 
-    // TODO: Replace with the result of calling server
-    return this.getFakeData(lastItem, pageSize, userAlias);
+    const page = await this.statusDao.getPageOfStoryItems(
+      userAlias,
+      pageSize,
+      lastItem?.timestamp,
+    );
+    return [page.items, page.hasMore];
   }
 
   public async postStatus(
@@ -40,10 +52,7 @@ export class StatusService implements Service {
     requireNonEmptyStrings(token);
     requireStatusDto(newStatus);
 
-    // Pause so we can see the logging out message. Remove when connected to the server
-    await new Promise((f) => setTimeout(f, 2000));
-
-    // TODO: Call the server to post the status
+    await this.statusDao.putItem(newStatus);
   }
 
   private validatePageRequest(

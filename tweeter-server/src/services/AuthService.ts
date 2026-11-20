@@ -43,13 +43,7 @@ export class AuthService implements Service {
       throw new Error("Invalid password");
     }
 
-    const authToken = this.createAuthToken();
-    await this.sessionDao.putItem({
-      token: authToken.token,
-      timestamp: authToken.timestamp,
-      userAlias: user.alias,
-      expiresAt: authToken.timestamp + this.sessionLifetimeMilliseconds,
-    });
+    const authToken = await this.createSession(user.alias);
     return [user, authToken];
   }
 
@@ -90,15 +84,16 @@ export class AuthService implements Service {
       throw new Error("Alias is already registered");
     }
 
+    const passwordHash = await this.hashPassword(password);
     await Promise.all([
       this.userDao.putItem(userDto),
       this.authDao.putItem({
         alias,
-        passwordHash: this.hashPassword(password),
+        passwordHash,
       }),
     ]);
 
-    return await this.login(alias, password);
+    return [userDto, await this.createSession(alias)];
   }
 
   public async logout(token: string): Promise<void> {
@@ -107,11 +102,18 @@ export class AuthService implements Service {
     await this.sessionDao.deleteItem(token);
   }
 
-  private hashPassword(password: string): string {
-    return bcrypt.hashSync(password);
+  private hashPassword(password: string): Promise<string> {
+    return bcrypt.hash(password, 10);
   }
 
-  private createAuthToken(): AuthTokenDto {
-    return AuthToken.Generate().dto;
+  private async createSession(userAlias: string): Promise<AuthTokenDto> {
+    const authToken = AuthToken.Generate().dto;
+    await this.sessionDao.putItem({
+      token: authToken.token,
+      timestamp: authToken.timestamp,
+      userAlias,
+      expiresAt: authToken.timestamp + this.sessionLifetimeMilliseconds,
+    });
+    return authToken;
   }
 }

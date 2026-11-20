@@ -1,3 +1,5 @@
+// Partially written by AI.
+
 import { TweeterRequest, TweeterResponse } from "tweeter-shared";
 
 export class ClientCommunicator {
@@ -39,8 +41,17 @@ export class ClientCommunicator {
         const response: RES = await resp.json();
         return response;
       } else {
-        const error = await resp.json();
-        throw new Error(error.errorMessage);
+        const error = (await resp.json()) as {
+          message?: unknown;
+          errorMessage?: unknown;
+        };
+        const message =
+          typeof error.message === "string"
+            ? error.message
+            : typeof error.errorMessage === "string"
+              ? error.errorMessage
+              : resp.statusText;
+        throw new Error(`HTTP ${resp.status}: ${message}`);
       }
     } catch (error) {
       console.error(error);

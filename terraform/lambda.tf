@@ -106,6 +106,8 @@ resource "aws_lambda_function" "lambda" {
   role          = aws_iam_role.lambda_execution.arn
   runtime       = "nodejs22.x"
   handler       = each.value.handler
+  timeout       = 10
+  memory_size   = 256
 
   filename         = data.archive_file.lambda[each.key].output_path
   source_code_hash = data.archive_file.lambda[each.key].output_base64sha256

@@ -17,6 +17,11 @@ import {
   GetCallerIdentityCommand,
   STSClient,
 } from "@aws-sdk/client-sts";
+import {
+  DeleteObjectCommand,
+  HeadBucketCommand,
+  S3Client,
+} from "@aws-sdk/client-s3";
 import bcrypt from "bcryptjs";
 import {
   AuthToken,
@@ -26,6 +31,8 @@ import {
 
 export const INTEGRATION_REGION = "us-east-2";
 export const INTEGRATION_ACCOUNT_ID = "727728513382";
+export const INTEGRATION_IMAGE_BUCKET =
+  `tweeter-user-images-${INTEGRATION_ACCOUNT_ID}`;
 
 export const INTEGRATION_TABLES = {
   users: "users",
@@ -50,7 +57,9 @@ let preflightPromise: Promise<void> | undefined;
 
 export class DynamoTestHarness {
   private readonly client: DynamoDBDocumentClient;
+  private readonly s3Client: S3Client;
   private readonly cleanupEntries = new Map<string, CleanupEntry>();
+  private readonly imageCleanupKeys = new Set<string>();
   private readonly aliasPrefix: string;
 
   private constructor(public readonly runId: string) {
@@ -61,6 +70,7 @@ export class DynamoTestHarness {
     this.client = DynamoDBDocumentClient.from(lowLevelClient, {
       marshallOptions: { removeUndefinedValues: true },
     });
+    this.s3Client = new S3Client({ region: INTEGRATION_REGION });
     this.aliasPrefix = `@integration-${runId}-`;
   }
 
@@ -229,10 +239,28 @@ export class DynamoTestHarness {
     );
   }
 
-  public trackApiRegistration(alias: string): void {
+  public trackApiRegistration(
+    alias: string,
+    imageFileExtension: string,
+  ): void {
     this.assertOwnedAlias(alias);
     this.trackCleanup(INTEGRATION_TABLES.users, { alias });
     this.trackCleanup(INTEGRATION_TABLES.auth, { alias });
+    this.imageCleanupKeys.add(
+      this.imageKey(alias, imageFileExtension),
+    );
+  }
+
+  public imageUrl(alias: string, imageFileExtension: string): string {
+    this.assertOwnedAlias(alias);
+    const encodedKey = this.imageKey(alias, imageFileExtension)
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/");
+    return (
+      `https://${INTEGRATION_IMAGE_BUCKET}.s3.${INTEGRATION_REGION}` +
+      `.amazonaws.com/${encodedKey}`
+    );
   }
 
   public trackSession(token: string, ownerAlias: string): void {
@@ -295,6 +323,19 @@ export class DynamoTestHarness {
     const entries = [...this.cleanupEntries.values()].reverse();
     const failures: string[] = [];
 
+    for (const key of this.imageCleanupKeys) {
+      try {
+        await this.s3Client.send(
+          new DeleteObjectCommand({
+            Bucket: INTEGRATION_IMAGE_BUCKET,
+            Key: key,
+          }),
+        );
+      } catch (error) {
+        failures.push(`delete s3:${key}: ${String(error)}`);
+      }
+    }
+
     for (const entry of entries) {
       try {
         await this.client.send(
@@ -329,6 +370,7 @@ export class DynamoTestHarness {
     }
 
     this.client.destroy();
+    this.s3Client.destroy();
 
     if (failures.length > 0) {
       throw new Error(`Integration cleanup failed:\n${failures.join("\n")}`);
@@ -371,6 +413,13 @@ export class DynamoTestHarness {
     this.cleanupEntries.set(cleanupKey, { tableName, key });
   }
 
+  private imageKey(alias: string, imageFileExtension: string): string {
+    const normalizedExtension = imageFileExtension
+      .toLowerCase()
+      .replace(/^\./, "");
+    return `image/${alias}.${normalizedExtension}`;
+  }
+
   private assertOwnedAlias(alias: string): void {
     if (!alias.startsWith(this.aliasPrefix)) {
       throw new Error(
@@ -401,6 +450,7 @@ export class DynamoTestHarness {
     const dynamoClient = new DynamoDBClient({
       region: INTEGRATION_REGION,
     });
+    const s3Client = new S3Client({ region: INTEGRATION_REGION });
 
     try {
       const identity = await stsClient.send(
@@ -411,6 +461,10 @@ export class DynamoTestHarness {
           `Integration tests require AWS account '${INTEGRATION_ACCOUNT_ID}', received '${identity.Account ?? "unknown"}'`,
         );
       }
+
+      await s3Client.send(
+        new HeadBucketCommand({ Bucket: INTEGRATION_IMAGE_BUCKET }),
+      );
 
       await Promise.all(
         Object.values(INTEGRATION_TABLES).map(async (tableName) => {
@@ -433,6 +487,7 @@ export class DynamoTestHarness {
     } finally {
       stsClient.destroy();
       dynamoClient.destroy();
+      s3Client.destroy();
     }
   }
 }

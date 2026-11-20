@@ -112,5 +112,8 @@ resource "aws_lambda_function" "lambda" {
   filename         = data.archive_file.lambda[each.key].output_path
   source_code_hash = data.archive_file.lambda[each.key].output_base64sha256
 
-  depends_on = [aws_iam_role_policy_attachment.lambda_logging]
+  depends_on = [
+    aws_iam_role_policy.lambda_s3_image_access,
+    aws_iam_role_policy_attachment.lambda_logging,
+  ]
 }

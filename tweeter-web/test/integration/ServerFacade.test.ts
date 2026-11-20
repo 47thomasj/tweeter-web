@@ -22,6 +22,7 @@
  * - GetFollowingCount without a user -> 400
  */
 
+import { Buffer } from "buffer";
 import {
   AuthToken,
   FollowRequest,
@@ -174,7 +175,11 @@ describe("ServerFacade.register", () => {
   it("persists a user, credentials, and session for valid credentials", async () => {
     const alias = harness.alias("registered");
     const request = makeRegisterRequest(alias);
-    harness.trackApiRegistration(alias);
+    const expectedImageUrl = harness.imageUrl(
+      alias,
+      request.imageFileExtension,
+    );
+    harness.trackApiRegistration(alias, request.imageFileExtension);
 
     const [user, returnedAuthToken] =
       await serverFacade.register(request);
@@ -184,14 +189,14 @@ describe("ServerFacade.register", () => {
       firstName: request.firstName,
       lastName: request.lastName,
       alias,
-      imageUrl: request.userImageBytes,
+      imageUrl: expectedImageUrl,
     });
     expectValidAuthToken(returnedAuthToken);
     expect(await harness.getUser(alias)).toEqual({
       alias,
       first_name: request.firstName,
       last_name: request.lastName,
-      image_url: request.userImageBytes,
+      image_url: expectedImageUrl,
     });
     expect(await harness.getCredentials(alias)).toEqual({
       alias,
@@ -203,6 +208,13 @@ describe("ServerFacade.register", () => {
         user_alias: alias,
       }),
     );
+
+    const imageResponse = await fetch(expectedImageUrl);
+    expect(imageResponse.status).toBe(200);
+    expect(imageResponse.headers.get("content-type")).toBe("image/png");
+    expect(
+      Buffer.from(await imageResponse.arrayBuffer()).toString("base64"),
+    ).toBe(request.userImageBytes);
   });
 
   it("returns 400 when the alias is already registered", async () => {

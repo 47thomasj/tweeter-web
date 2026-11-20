@@ -3,6 +3,14 @@
 import { StatusDto, UserDto } from "tweeter-shared";
 import { ClientError } from "./ClientError";
 
+const supportedImageFileExtensions = new Set([
+  "gif",
+  "jpeg",
+  "jpg",
+  "png",
+  "webp",
+]);
+
 function throwBadRequest(): never {
   throw new ClientError("Bad Request");
 }
@@ -27,6 +35,19 @@ export function requireNonEmptyBytes(
   if (!(value instanceof Uint8Array) || value.byteLength === 0) {
     throwBadRequest();
   }
+}
+
+export function requireSupportedImageFileExtension(
+  value: string | null | undefined,
+): string {
+  if (typeof value !== "string") {
+    throwBadRequest();
+  }
+  const normalizedValue = value.toLowerCase().replace(/^\./, "");
+  if (!supportedImageFileExtensions.has(normalizedValue)) {
+    throwBadRequest();
+  }
+  return normalizedValue;
 }
 
 export function requireUserDto(user: UserDto | null | undefined): void {

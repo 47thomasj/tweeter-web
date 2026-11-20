@@ -1,6 +1,7 @@
 // Partially written by AI.
 import type { UserDto } from "tweeter-shared";
-import type { UserDao } from "../UserDao";
+import type { UserDao, UserWithoutImage } from "../UserDao";
+import { S3Dao } from "../s3/S3Dao";
 import { DynamoDao } from "./DynamoDao";
 
 export class DynamoUserDao
@@ -11,6 +12,21 @@ export class DynamoUserDao
   private readonly firstNameAttr = "first_name";
   private readonly lastNameAttr = "last_name";
   private readonly imageUrlAttr = "image_url";
+  private readonly s3Dao = new S3Dao();
+
+  public async createUser(
+    user: UserWithoutImage,
+    imageBytes: Uint8Array,
+    imageFileExtension: string,
+  ): Promise<UserDto> {
+    const imageUrl = await this.s3Dao.putImage(
+      `${user.alias}.${imageFileExtension}`,
+      imageBytes,
+    );
+    const userWithImage: UserDto = { ...user, imageUrl };
+    await super.putItem(userWithImage);
+    return userWithImage;
+  }
 
   protected mapItem(user: UserDto): Record<string, string> {
     return {

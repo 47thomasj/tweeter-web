@@ -11,6 +11,9 @@ import {
 
 export const FOLLOWERS_PAGE_SIZE = 3;
 export const INTEGRATION_PASSWORD = "IntegrationPassword123!";
+export const REGISTER_IMAGE_BASE64 =
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwC" +
+  "AAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
 export function makeLoginRequest(
   alias: string,
@@ -32,7 +35,7 @@ export function makeRegisterRequest(
     lastName: "Tester",
     alias,
     password: INTEGRATION_PASSWORD,
-    userImageBytes: "dGVzdA==",
+    userImageBytes: REGISTER_IMAGE_BASE64,
     imageFileExtension: "png",
     ...overrides,
   };

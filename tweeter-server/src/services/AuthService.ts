@@ -1,11 +1,11 @@
 // Partially written by AI.
 
-import { Buffer } from "buffer";
 import { AuthToken, type AuthTokenDto, type UserDto } from "tweeter-shared";
 import { Service } from "./Service";
 import {
   requireNonEmptyBytes,
   requireNonEmptyStrings,
+  requireSupportedImageFileExtension,
 } from "./RequestValidation";
 import type { AuthDao } from "../dao/AuthDao";
 import type { DaoFactory } from "../dao/DaoFactory";
@@ -53,7 +53,7 @@ export class AuthService implements Service {
     lastName: string,
     alias: string,
     password: string,
-    userImageBytes: Uint8Array,
+    imageBytes: Uint8Array,
     imageFileExtension: string,
   ): Promise<[UserDto, AuthTokenDto]> {
     requireNonEmptyStrings(
@@ -63,19 +63,9 @@ export class AuthService implements Service {
       password,
       imageFileExtension,
     );
-    requireNonEmptyBytes(userImageBytes);
-
-    const imageStringBase64: string =
-      Buffer.from(userImageBytes).toString("base64");
-
-    const imageUrl = imageStringBase64; // TODO: Replace once images are stored in S3.
-
-    const userDto: UserDto = {
-      alias,
-      firstName,
-      lastName,
-      imageUrl,
-    };
+    requireNonEmptyBytes(imageBytes);
+    const normalizedImageFileExtension =
+      requireSupportedImageFileExtension(imageFileExtension);
 
     const [existingPasswordHash, existingUser] = await Promise.all([
       this.authDao.getPasswordHash(alias),
@@ -86,15 +76,17 @@ export class AuthService implements Service {
     }
 
     const passwordHash = await this.hashPassword(password);
-    await Promise.all([
-      this.userDao.putItem(userDto),
-      this.authDao.putItem({
-        alias,
-        passwordHash,
-      }),
-    ]);
+    const user = await this.userDao.createUser(
+      { alias, firstName, lastName },
+      imageBytes,
+      normalizedImageFileExtension,
+    );
+    await this.authDao.putItem({
+      alias,
+      passwordHash,
+    });
 
-    return [userDto, await this.createSession(alias)];
+    return [user, await this.createSession(alias)];
   }
 
   public async logout(token: string): Promise<void> {

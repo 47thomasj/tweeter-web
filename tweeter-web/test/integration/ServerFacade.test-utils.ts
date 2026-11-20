@@ -2,7 +2,6 @@
 
 import {
   AuthToken,
-  FakeData,
   GetFollowCountRequest,
   LoginRequest,
   PagedUserItemRequest,
@@ -11,62 +10,42 @@ import {
 } from "tweeter-shared";
 
 export const FOLLOWERS_PAGE_SIZE = 3;
-
-const firstFakeUser = FakeData.instance.firstUser;
-
-if (firstFakeUser === null) {
-  throw new Error("The integration tests require at least one fake user");
-}
-
-export const FIRST_FAKE_USER = firstFakeUser;
+export const INTEGRATION_PASSWORD = "IntegrationPassword123!";
 
 export function makeLoginRequest(
+  alias: string,
   overrides: Partial<LoginRequest> = {},
 ): LoginRequest {
   return {
-    alias: FIRST_FAKE_USER.alias,
-    password: "password",
+    alias,
+    password: INTEGRATION_PASSWORD,
     ...overrides,
   };
 }
 
-export function makeInvalidLoginRequest(): LoginRequest {
-  return makeLoginRequest({
-    alias: "@user-that-does-not-exist",
-    password: "incorrect-password",
-  });
-}
-
 export function makeRegisterRequest(
+  alias: string,
   overrides: Partial<RegisterRequest> = {},
 ): RegisterRequest {
   return {
     firstName: "Integration",
     lastName: "Tester",
-    alias: "@integration-tester",
-    password: "valid-password",
+    alias,
+    password: INTEGRATION_PASSWORD,
     userImageBytes: "dGVzdA==",
     imageFileExtension: "png",
     ...overrides,
   };
 }
 
-export function makeInvalidRegisterRequest(): RegisterRequest {
-  return makeRegisterRequest({
-    firstName: "",
-    lastName: "",
-    alias: "invalid-alias",
-    password: "x",
-  });
-}
-
 export function makeFollowersRequest(
   token: string,
+  userAlias: string,
   overrides: Partial<PagedUserItemRequest> = {},
 ): PagedUserItemRequest {
   return {
     token,
-    userAlias: FIRST_FAKE_USER.alias,
+    userAlias,
     pageSize: FOLLOWERS_PAGE_SIZE,
     lastItem: null,
     ...overrides,
@@ -75,32 +54,17 @@ export function makeFollowersRequest(
 
 export function makeFollowCountRequest(
   token: string,
+  user: UserDto,
   overrides: Partial<GetFollowCountRequest> = {},
 ): GetFollowCountRequest {
   return {
     token,
-    user: FIRST_FAKE_USER.dto,
+    user,
     ...overrides,
   };
 }
 
-export function omitRequestField<T extends object, K extends keyof T>(
-  request: T,
-  field: K,
-): Omit<T, K> {
-  const { [field]: omitted, ...incompleteRequest } = request;
-  void omitted;
-  return incompleteRequest;
-}
-
-export function getExpectedFollowerDtos(): UserDto[] {
-  return FakeData.instance.fakeUsers
-    .filter((user) => user.alias !== FIRST_FAKE_USER.alias)
-    .slice(0, FOLLOWERS_PAGE_SIZE)
-    .map((user) => user.dto);
-}
-
-export function expectFakeDataAuthToken(authToken: AuthToken): void {
+export function expectValidAuthToken(authToken: AuthToken): void {
   expect(authToken).toBeInstanceOf(AuthToken);
   expect(authToken.token).toEqual(expect.any(String));
   expect(authToken.token).not.toHaveLength(0);
@@ -108,14 +72,32 @@ export function expectFakeDataAuthToken(authToken: AuthToken): void {
   expect(authToken.timestamp).toBeGreaterThan(0);
 }
 
-interface CapturedHttpResult {
+export interface CapturedHttpResult {
   readonly status: number | undefined;
   readonly error: unknown;
 }
 
-export function expectBadRequest(result: CapturedHttpResult): void {
-  expect(result.status).toBe(400);
+export function expectHttpError(
+  result: CapturedHttpResult,
+  status: number,
+  message: string,
+): void {
+  expect(result.status).toBe(status);
   expect(result.error).toBeInstanceOf(Error);
+  expect((result.error as Error).message).toContain(
+    `HTTP ${status}: ${message}`,
+  );
+}
+
+export function expectBadRequest(
+  result: CapturedHttpResult,
+  message = "Bad Request",
+): void {
+  expectHttpError(result, 400, message);
+}
+
+export function expectServerError(result: CapturedHttpResult): void {
+  expectHttpError(result, 500, "Server error");
 }
 
 export async function captureHttpResult(

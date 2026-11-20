@@ -12,6 +12,7 @@ import type { DaoFactory } from "../dao/DaoFactory";
 import type { SessionDao } from "../dao/SessionDao";
 import type { UserDao } from "../dao/UserDao";
 import bcrypt from "bcryptjs";
+import { ClientError } from "./ClientError";
 
 export class AuthService implements Service {
   private readonly authDao: AuthDao;
@@ -37,10 +38,10 @@ export class AuthService implements Service {
       this.userDao.getItem(alias),
     ]);
     if (passwordHash === undefined || user === undefined) {
-      throw new Error("Invalid alias");
+      throw new ClientError("Invalid alias");
     }
     if (!(await bcrypt.compare(password, passwordHash))) {
-      throw new Error("Invalid password");
+      throw new ClientError("Invalid password");
     }
 
     const authToken = await this.createSession(user.alias);
@@ -81,7 +82,7 @@ export class AuthService implements Service {
       this.userDao.getItem(alias),
     ]);
     if (existingPasswordHash !== undefined || existingUser !== undefined) {
-      throw new Error("Alias is already registered");
+      throw new ClientError("Alias is already registered");
     }
 
     const passwordHash = await this.hashPassword(password);

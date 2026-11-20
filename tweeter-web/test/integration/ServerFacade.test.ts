@@ -36,26 +36,29 @@ import {
   RegisterRequest,
   StatusDto,
   UnfollowRequest,
-  User,
   UserDto,
 } from "tweeter-shared";
 import { ServerFacade } from "../../src/model/ServerFacade";
 import {
   captureHttpResult,
   expectBadRequest,
-  expectFakeDataAuthToken,
-  FIRST_FAKE_USER,
-  getExpectedFollowerDtos,
+  expectServerError,
+  expectValidAuthToken,
+  FOLLOWERS_PAGE_SIZE,
+  INTEGRATION_PASSWORD,
   makeFollowCountRequest,
   makeFollowersRequest,
   makeLoginRequest,
   makeRegisterRequest,
 } from "./ServerFacade.test-utils";
+import { DynamoTestHarness } from "./DynamoTestHarness";
 
-jest.setTimeout(30_000);
+jest.setTimeout(60_000);
 
 let serverFacade: ServerFacade;
-let authenticatedUser: User;
+let harness: DynamoTestHarness;
+let primaryUser: UserDto;
+let followerUsers: UserDto[];
 let authToken: AuthToken;
 
 const EMPTY_USER_DTO: UserDto = {
@@ -135,9 +138,32 @@ const EMPTY_UNFOLLOW_REQUEST: UnfollowRequest = {
 };
 
 beforeAll(async () => {
-  [authenticatedUser, authToken] = await new ServerFacade().login(
-    makeLoginRequest(),
+  harness = await DynamoTestHarness.create("server-facade");
+  primaryUser = harness.makeUser("primary");
+  followerUsers = ["follower-a", "follower-b", "follower-c", "follower-d"].map(
+    (label) => harness.makeUser(label),
   );
+
+  await harness.seedUser(primaryUser);
+  await harness.seedCredentials(primaryUser.alias, INTEGRATION_PASSWORD);
+  authToken = await harness.seedSession(primaryUser.alias, "primary-session");
+
+  for (const follower of followerUsers) {
+    await harness.seedUser(follower);
+    await harness.seedFollow(follower.alias, primaryUser.alias);
+  }
+  for (const follower of followerUsers) {
+    await harness.waitForFollowerIndex(
+      follower.alias,
+      primaryUser.alias,
+    );
+  }
+});
+
+afterAll(async () => {
+  if (harness) {
+    await harness.cleanup();
+  }
 });
 
 beforeEach(() => {
@@ -145,50 +171,112 @@ beforeEach(() => {
 });
 
 describe("ServerFacade.register", () => {
-  it("returns the fake-data auth token for valid credentials", async () => {
-    const [, returnedAuthToken] = await serverFacade.register(
-      makeRegisterRequest(),
-    );
+  it("persists a user, credentials, and session for valid credentials", async () => {
+    const alias = harness.alias("registered");
+    const request = makeRegisterRequest(alias);
+    harness.trackApiRegistration(alias);
 
-    expectFakeDataAuthToken(returnedAuthToken);
+    const [user, returnedAuthToken] =
+      await serverFacade.register(request);
+    harness.trackSession(returnedAuthToken.token, alias);
+
+    expect(user.dto).toEqual({
+      firstName: request.firstName,
+      lastName: request.lastName,
+      alias,
+      imageUrl: request.userImageBytes,
+    });
+    expectValidAuthToken(returnedAuthToken);
+    expect(await harness.getUser(alias)).toEqual({
+      alias,
+      first_name: request.firstName,
+      last_name: request.lastName,
+      image_url: request.userImageBytes,
+    });
+    expect(await harness.getCredentials(alias)).toEqual({
+      alias,
+      password_hash: expect.any(String),
+    });
+    expect(await harness.getSession(returnedAuthToken.token)).toEqual(
+      expect.objectContaining({
+        token: returnedAuthToken.token,
+        user_alias: alias,
+      }),
+    );
+  });
+
+  it("returns 400 when the alias is already registered", async () => {
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.register(makeRegisterRequest(primaryUser.alias)),
+      ),
+      "Alias is already registered",
+    );
   });
 });
 
 describe("ServerFacade.login", () => {
-  it("returns the fake-data user and auth token for valid credentials", async () => {
+  it("returns the persisted user and creates a session", async () => {
     const [user, returnedAuthToken] = await serverFacade.login(
-      makeLoginRequest(),
+      makeLoginRequest(primaryUser.alias),
     );
+    harness.trackSession(returnedAuthToken.token, primaryUser.alias);
 
-    expect(user.dto).toEqual(FIRST_FAKE_USER.dto);
-    expectFakeDataAuthToken(returnedAuthToken);
+    expect(user.dto).toEqual(primaryUser);
+    expectValidAuthToken(returnedAuthToken);
+    expect(await harness.getSession(returnedAuthToken.token)).toEqual(
+      expect.objectContaining({
+        token: returnedAuthToken.token,
+        user_alias: primaryUser.alias,
+      }),
+    );
+  });
+
+  it("returns 400 for an invalid password", async () => {
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.login(
+          makeLoginRequest(primaryUser.alias, {
+            password: "incorrect-password",
+          }),
+        ),
+      ),
+      "Invalid password",
+    );
+  });
+
+  it("returns 400 for an unknown alias", async () => {
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.login(
+          makeLoginRequest(harness.alias("unknown-user")),
+        ),
+      ),
+      "Invalid alias",
+    );
   });
 });
 
 describe("ServerFacade.getMoreFollowers", () => {
-  it("returns a page of fake-data users for a valid token and alias", async () => {
+  it("returns an ordered page of persisted followers", async () => {
     const [followers, hasMore] = await serverFacade.getMoreFollowers(
-      makeFollowersRequest(authToken.token),
+      makeFollowersRequest(authToken.token, primaryUser.alias),
     );
 
     expect(followers.map((follower) => follower.dto)).toEqual(
-      getExpectedFollowerDtos(),
+      followerUsers.slice(0, FOLLOWERS_PAGE_SIZE),
     );
     expect(hasMore).toBe(true);
   });
 });
 
 describe("ServerFacade.getFollowerCount", () => {
-  it("returns a fake-data count for a valid token and user", async () => {
+  it("returns the persisted follower count", async () => {
     const followerCount = await serverFacade.getFollowerCount(
-      makeFollowCountRequest(authToken.token, {
-        user: authenticatedUser.dto,
-      }),
+      makeFollowCountRequest(authToken.token, primaryUser),
     );
 
-    expect(Number.isInteger(followerCount)).toBe(true);
-    expect(followerCount).toBeGreaterThanOrEqual(1);
-    expect(followerCount).toBeLessThanOrEqual(10);
+    expect(followerCount).toBe(followerUsers.length);
   });
 });
 
@@ -262,4 +350,52 @@ describe("ServerFacade empty requests", () => {
       expectBadRequest(await captureHttpResult(action));
     },
   );
+});
+
+describe("ServerFacade database failures", () => {
+  it("returns 500 when an auth record is malformed", async () => {
+    const user = harness.makeUser("malformed-auth");
+    await harness.seedUser(user);
+    await harness.seedMalformedCredentials(user.alias);
+
+    expectServerError(
+      await captureHttpResult(() =>
+        serverFacade.login(makeLoginRequest(user.alias)),
+      ),
+    );
+  });
+
+  it("returns 500 when a follow references a missing user", async () => {
+    const missingFollowerAlias = harness.alias("missing-follower");
+    const followeeAlias = harness.alias("dangling-follow-target");
+    await harness.seedFollow(missingFollowerAlias, followeeAlias);
+    await harness.waitForFollowerIndex(
+      missingFollowerAlias,
+      followeeAlias,
+    );
+
+    expectServerError(
+      await captureHttpResult(() =>
+        serverFacade.getMoreFollowers(
+          makeFollowersRequest(authToken.token, followeeAlias, {
+            pageSize: 10,
+          }),
+        ),
+      ),
+    );
+  });
+
+  it("returns 500 when a user record is malformed", async () => {
+    const alias = harness.alias("malformed-user");
+    await harness.seedMalformedUser(alias);
+
+    expectServerError(
+      await captureHttpResult(() =>
+        serverFacade.getUser({
+          token: authToken.token,
+          alias,
+        }),
+      ),
+    );
+  });
 });

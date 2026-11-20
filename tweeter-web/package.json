@@ -31,7 +31,8 @@
     "build": "tsc && vite build",
     "serve": "vite preview",
     "reload": "npm run build && npm run serve",
-    "test": "jest --passWithNoTests"
+    "test": "jest --passWithNoTests",
+    "test:integration": "jest --runInBand test/integration"
   },
   "eslintConfig": {
     "extends": [
@@ -52,8 +53,12 @@
     ]
   },
   "devDependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1173.0",
+    "@aws-sdk/client-sts": "^3.1173.0",
+    "@aws-sdk/lib-dynamodb": "^3.1173.0",
     "@types/node": "^20.11.24",
     "@vitejs/plugin-react": "^4.2.1",
+    "bcryptjs": "^3.0.3",
     "vite": "^4.5.2",
     "vite-plugin-svgr": "^3.3.0",
     "vite-tsconfig-paths": "^4.3.1"

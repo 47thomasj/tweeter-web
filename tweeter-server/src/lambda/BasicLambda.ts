@@ -3,6 +3,7 @@
 import type { TweeterResponse } from "tweeter-shared";
 import type { DaoFactory } from "../dao/DaoFactory";
 import { DynamoDaoFactory } from "../dao/dynamo/DynamoDaoFactory";
+import { ClientError } from "../services/ClientError";
 
 const daoFactory: DaoFactory = new DynamoDaoFactory();
 
@@ -23,10 +24,15 @@ export async function handle<
     const service = new ServiceClass(daoFactory);
     payload = await action(service);
   } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Bad Request",
-    } as TResponse;
+    if (error instanceof ClientError) {
+      return {
+        success: false,
+        message: error.message,
+      } as TResponse;
+    }
+
+    console.error(error);
+    throw error;
   }
 
   return {

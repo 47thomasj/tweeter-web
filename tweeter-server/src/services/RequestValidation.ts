@@ -1,9 +1,10 @@
 // Partially written by AI.
 
 import { StatusDto, UserDto } from "tweeter-shared";
+import { ClientError } from "./ClientError";
 
 function throwBadRequest(): never {
-  throw new Error("Bad Request");
+  throw new ClientError("Bad Request");
 }
 
 export function requireNonEmptyStrings(

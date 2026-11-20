@@ -1,5 +1,17 @@
 // Partially written by AI.
 
+const {
+  DescribeTableCommand,
+  DynamoDBClient,
+} = require("@aws-sdk/client-dynamodb");
+const {
+  DeleteCommand,
+  DynamoDBDocumentClient,
+  GetCommand,
+  PutCommand,
+  QueryCommand,
+} = require("@aws-sdk/lib-dynamodb");
+
 const DEFAULT_BASE_URL =
   "https://3hayumc9i0.execute-api.us-east-2.amazonaws.com/dev";
 const baseUrl = (
@@ -8,8 +20,137 @@ const baseUrl = (
   DEFAULT_BASE_URL
 ).replace(/\/+$/, "");
 
+const REGION = "us-east-2";
+const ACCOUNT_ID = "727728513382";
+const TABLES = {
+  users: "users",
+  auth: "auth",
+  sessions: "sessions",
+  follows: "follows",
+  statuses: "statuses",
+  feed: "feed",
+};
+
+const lowLevelClient = new DynamoDBClient({
+  region: REGION,
+  maxAttempts: 5,
+});
+const documentClient = DynamoDBDocumentClient.from(lowLevelClient);
+const cleanupEntries = new Map();
 const failures = [];
 let passed = 0;
+
+function trackCleanup(tableName, key) {
+  cleanupEntries.set(`${tableName}:${JSON.stringify(key)}`, {
+    tableName,
+    key,
+  });
+}
+
+async function putTrackedItem(tableName, item, key) {
+  trackCleanup(tableName, key);
+  await documentClient.send(
+    new PutCommand({
+      TableName: tableName,
+      Item: item,
+    }),
+  );
+}
+
+async function verifyDatabaseTarget() {
+  const output = await lowLevelClient.send(
+    new DescribeTableCommand({ TableName: TABLES.users }),
+  );
+  const expectedArn =
+    `arn:aws:dynamodb:${REGION}:${ACCOUNT_ID}:table/${TABLES.users}`;
+  if (
+    output.Table?.TableStatus !== "ACTIVE" ||
+    output.Table.TableArn !== expectedArn
+  ) {
+    throw new Error("Refusing to use an unexpected DynamoDB deployment");
+  }
+}
+
+async function cleanup() {
+  const entries = [...cleanupEntries.values()].reverse();
+  const cleanupFailures = [];
+
+  for (const entry of entries) {
+    try {
+      await documentClient.send(
+        new DeleteCommand({
+          TableName: entry.tableName,
+          Key: entry.key,
+        }),
+      );
+    } catch (error) {
+      cleanupFailures.push(
+        `delete ${entry.tableName}:${JSON.stringify(entry.key)}: ${error}`,
+      );
+    }
+  }
+
+  for (const entry of entries) {
+    try {
+      const output = await documentClient.send(
+        new GetCommand({
+          TableName: entry.tableName,
+          Key: entry.key,
+          ConsistentRead: true,
+        }),
+      );
+      if (output.Item !== undefined) {
+        cleanupFailures.push(
+          `item remained in ${entry.tableName}:${JSON.stringify(entry.key)}`,
+        );
+      }
+    } catch (error) {
+      cleanupFailures.push(
+        `verify ${entry.tableName}:${JSON.stringify(entry.key)}: ${error}`,
+      );
+    }
+  }
+
+  lowLevelClient.destroy();
+
+  if (cleanupFailures.length > 0) {
+    throw new Error(cleanupFailures.join("\n"));
+  }
+}
+
+async function waitFor(description, condition) {
+  const delays = [50, 100, 200, 400, 800, 1600];
+  for (const delay of delays) {
+    if (await condition()) {
+      return;
+    }
+    await new Promise((resolve) => setTimeout(resolve, delay));
+  }
+  if (!(await condition())) {
+    throw new Error(`Timed out waiting for ${description}`);
+  }
+}
+
+async function waitForFollowIndex(followerAlias, followeeAlias) {
+  await waitFor(
+    `follow index entry '${followerAlias}' -> '${followeeAlias}'`,
+    async () => {
+      const output = await documentClient.send(
+        new QueryCommand({
+          TableName: TABLES.follows,
+          IndexName: "follows_index",
+          KeyConditionExpression: "followee_handle = :followee",
+          ExpressionAttributeValues: {
+            ":followee": followeeAlias,
+          },
+        }),
+      );
+      return (output.Items || []).some(
+        (item) => item.follower_handle === followerAlias,
+      );
+    },
+  );
+}
 
 function assert(condition, message) {
   if (!condition) {
@@ -73,173 +214,298 @@ async function test(name, path, body, validate = () => {}) {
 
 async function main() {
   const runId = Date.now();
-  const alias = `@endpointtest${runId}`;
+  const alias = `@endpointtest${runId}-current`;
+  const targetAlias = `@endpointtest${runId}-target`;
   const password = "EndpointTest123!";
   const image =
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
   console.log(`Testing ${baseUrl}\n`);
+  await verifyDatabaseTarget();
 
-  const registerResponse = await test(
-    "register",
-    "/register",
-    {
+  trackCleanup(TABLES.users, { alias });
+  trackCleanup(TABLES.auth, { alias });
+  trackCleanup(TABLES.users, { alias: targetAlias });
+  trackCleanup(TABLES.auth, { alias: targetAlias });
+
+  try {
+    const registerResponse = await test(
+      "register",
+      "/register",
+      {
+        firstName: "Endpoint",
+        lastName: "Current",
+        alias,
+        password,
+        userImageBytes: image,
+        imageFileExtension: "png",
+      },
+      assertAuthResponse,
+    );
+    if (registerResponse?.authToken?.token) {
+      trackCleanup(TABLES.sessions, {
+        token: registerResponse.authToken.token,
+      });
+    }
+
+    const targetRegisterResponse = await test(
+      "register target fixture",
+      "/register",
+      {
+        firstName: "Endpoint",
+        lastName: "Target",
+        alias: targetAlias,
+        password,
+        userImageBytes: image,
+        imageFileExtension: "png",
+      },
+      assertAuthResponse,
+    );
+    if (targetRegisterResponse?.authToken?.token) {
+      trackCleanup(TABLES.sessions, {
+        token: targetRegisterResponse.authToken.token,
+      });
+    }
+
+    const loginResponse = await test(
+      "login",
+      "/login",
+      { alias, password },
+      assertAuthResponse,
+    );
+    if (loginResponse?.authToken?.token) {
+      trackCleanup(TABLES.sessions, {
+        token: loginResponse.authToken.token,
+      });
+    }
+
+    const session = loginResponse || registerResponse;
+    const token = session?.authToken?.token || "endpoint-test-token";
+    const currentUser = session?.user || {
       firstName: "Endpoint",
-      lastName: "Test",
+      lastName: "Current",
       alias,
-      password,
-      userImageBytes: image,
-      imageFileExtension: "png",
-    },
-    assertAuthResponse,
-  );
+      imageUrl: image,
+    };
+    const targetUser = targetRegisterResponse?.user || {
+      firstName: "Endpoint",
+      lastName: "Target",
+      alias: targetAlias,
+      imageUrl: image,
+    };
 
-  const loginResponse = await test(
-    "login",
-    "/login",
-    { alias, password },
-    assertAuthResponse,
-  );
+    await test(
+      "get user",
+      "/user",
+      { token, alias: targetAlias },
+      (response) => {
+        assertUser(response.user);
+        assert(response.user.alias === targetAlias, "returned wrong user");
+      },
+    );
 
-  const session = loginResponse || registerResponse;
-  const token = session?.authToken?.token || "endpoint-test-token";
-  const currentUser = session?.user || {
-    firstName: "Allen",
-    lastName: "Anderson",
-    alias: "@allen",
-    imageUrl: "",
-  };
+    await test(
+      "get follower status before follow",
+      "/is-follower-status",
+      { token, user: currentUser, selectedUser: targetUser },
+      (response) =>
+        assert(response.isFollower === false, "users already followed"),
+    );
 
-  const userResponse = await test(
-    "get user",
-    "/user",
-    {
-      token,
-      alias: process.env.TWEETER_TARGET_ALIAS || "@amy",
-    },
-    (response) => assertUser(response.user),
-  );
+    trackCleanup(TABLES.follows, {
+      follower_handle: currentUser.alias,
+      followee_handle: targetUser.alias,
+    });
+    await test(
+      "follow",
+      "/follow",
+      { token, userToFollow: targetUser },
+      (response) => {
+        assert(
+          typeof response.followerCount === "number",
+          "missing followerCount",
+        );
+        assert(
+          typeof response.followeeCount === "number",
+          "missing followeeCount",
+        );
+      },
+    );
+    await waitForFollowIndex(currentUser.alias, targetUser.alias);
 
-  const followeesResponse = await test(
-    "get followees",
-    "/followees",
-    { token, userAlias: currentUser.alias, pageSize: 10, lastItem: null },
-    (response) => {
-      assert(Array.isArray(response.items), "items was not an array");
-      assert(typeof response.hasMore === "boolean", "hasMore was not boolean");
-    },
-  );
+    await test(
+      "get followees",
+      "/followees",
+      {
+        token,
+        userAlias: currentUser.alias,
+        pageSize: 10,
+        lastItem: null,
+      },
+      (response) => {
+        assert(Array.isArray(response.items), "items was not an array");
+        assert(
+          response.items.some((user) => user.alias === targetUser.alias),
+          "target user was not returned as a followee",
+        );
+      },
+    );
 
-  const followersResponse = await test(
-    "get followers",
-    "/followers",
-    { token, userAlias: currentUser.alias, pageSize: 10, lastItem: null },
-    (response) => {
-      assert(Array.isArray(response.items), "items was not an array");
-      assert(typeof response.hasMore === "boolean", "hasMore was not boolean");
-    },
-  );
+    await test(
+      "get followers",
+      "/followers",
+      {
+        token,
+        userAlias: targetUser.alias,
+        pageSize: 10,
+        lastItem: null,
+      },
+      (response) => {
+        assert(Array.isArray(response.items), "items was not an array");
+        assert(
+          response.items.some((user) => user.alias === currentUser.alias),
+          "current user was not returned as a follower",
+        );
+      },
+    );
 
-  const listedUsers = [
-    ...(followeesResponse?.items || []),
-    ...(followersResponse?.items || []),
-  ];
-  const targetUser =
-    userResponse?.user ||
-    listedUsers.find((user) => user.alias !== currentUser.alias) ||
-    currentUser;
+    await test(
+      "get followee count",
+      "/followee-count",
+      { token, user: currentUser },
+      (response) =>
+        assert(response.followeeCount === 1, "unexpected followee count"),
+    );
 
-  await test(
-    "get followee count",
-    "/followee-count",
-    { token, user: currentUser },
-    (response) =>
-      assert(typeof response.followeeCount === "number", "missing followeeCount"),
-  );
+    await test(
+      "get follower count",
+      "/follower-count",
+      { token, user: targetUser },
+      (response) =>
+        assert(response.followerCount === 1, "unexpected follower count"),
+    );
 
-  await test(
-    "get follower count",
-    "/follower-count",
-    { token, user: currentUser },
-    (response) =>
-      assert(typeof response.followerCount === "number", "missing followerCount"),
-  );
-
-  await test(
-    "get follower status",
-    "/is-follower-status",
-    { token, user: currentUser, selectedUser: targetUser },
-    (response) =>
-      assert(typeof response.isFollower === "boolean", "missing isFollower"),
-  );
-
-  await test(
-    "follow",
-    "/follow",
-    { token, userToFollow: targetUser },
-    (response) => {
-      assert(typeof response.followerCount === "number", "missing followerCount");
-      assert(typeof response.followeeCount === "number", "missing followeeCount");
-    },
-  );
-
-  await test(
-    "unfollow",
-    "/unfollow",
-    { token, userToUnfollow: targetUser },
-    (response) => {
-      assert(typeof response.followerCount === "number", "missing followerCount");
-      assert(typeof response.followeeCount === "number", "missing followeeCount");
-    },
-  );
-
-  await test(
-    "load feed items",
-    "/feed-items",
-    { token, userAlias: currentUser.alias, pageSize: 10, lastItem: null },
-    (response) => {
-      assert(Array.isArray(response.items), "items was not an array");
-      assert(typeof response.hasMore === "boolean", "hasMore was not boolean");
-    },
-  );
-
-  await test(
-    "load story items",
-    "/story-items",
-    { token, userAlias: currentUser.alias, pageSize: 10, lastItem: null },
-    (response) => {
-      assert(Array.isArray(response.items), "items was not an array");
-      assert(typeof response.hasMore === "boolean", "hasMore was not boolean");
-    },
-  );
-
-  const post = `Endpoint smoke test ${new Date().toISOString()}`;
-  await test("post status", "/post-status", {
-    token,
-    status: {
-      post,
+    const postText = `Endpoint smoke test ${new Date().toISOString()}`;
+    const timestamp = Date.now();
+    const status = {
+      post: postText,
       user: currentUser,
-      timestamp: Date.now(),
+      timestamp,
       segments: [
         {
-          text: post,
+          text: postText,
           startPosition: 0,
-          endPosition: post.length,
+          endPosition: postText.length,
           type: "Text",
         },
       ],
-    },
-  });
+    };
+    trackCleanup(TABLES.statuses, {
+      user_alias: currentUser.alias,
+      timestamp,
+    });
+    const postResponse = await test("post status", "/post-status", {
+      token,
+      status,
+    });
 
-  await test("logout", "/logout", { token });
+    await test(
+      "load story items",
+      "/story-items",
+      {
+        token,
+        userAlias: currentUser.alias,
+        pageSize: 10,
+        lastItem: null,
+      },
+      (response) => {
+        assert(Array.isArray(response.items), "items was not an array");
+        assert(
+          response.items.some(
+            (item) =>
+              item.user.alias === currentUser.alias &&
+              item.timestamp === timestamp,
+          ),
+          "posted status was not returned in the story",
+        );
+      },
+    );
 
-  console.log(`\n${passed}/14 endpoint tests passed.`);
+    if (postResponse !== null) {
+      await putTrackedItem(
+        TABLES.feed,
+        {
+          feed_user_alias: currentUser.alias,
+          status_user_alias: currentUser.alias,
+          timestamp,
+        },
+        {
+          feed_user_alias: currentUser.alias,
+          timestamp,
+        },
+      );
+    }
+
+    await test(
+      "load feed items",
+      "/feed-items",
+      {
+        token,
+        userAlias: currentUser.alias,
+        pageSize: 10,
+        lastItem: null,
+      },
+      (response) => {
+        assert(Array.isArray(response.items), "items was not an array");
+        assert(
+          response.items.some(
+            (item) =>
+              item.user.alias === currentUser.alias &&
+              item.timestamp === timestamp,
+          ),
+          "posted status was not returned in the feed",
+        );
+      },
+    );
+
+    await test(
+      "unfollow",
+      "/unfollow",
+      { token, userToUnfollow: targetUser },
+      (response) => {
+        assert(
+          typeof response.followerCount === "number",
+          "missing followerCount",
+        );
+        assert(
+          typeof response.followeeCount === "number",
+          "missing followeeCount",
+        );
+      },
+    );
+
+    const tokens = new Set(
+      [
+        registerResponse?.authToken?.token,
+        targetRegisterResponse?.authToken?.token,
+        loginResponse?.authToken?.token,
+      ].filter(Boolean),
+    );
+    for (const sessionToken of tokens) {
+      await test("logout", "/logout", { token: sessionToken });
+    }
+  } finally {
+    await cleanup();
+  }
+
+  console.log(`\n${passed} endpoint smoke checks passed.`);
   if (failures.length > 0) {
     process.exitCode = 1;
   }
 }
 
 main().catch((error) => {
+  lowLevelClient.destroy();
   console.error(error);
   process.exitCode = 1;
 });

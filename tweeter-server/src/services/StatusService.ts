@@ -10,14 +10,17 @@ import type { DaoFactory } from "../dao/DaoFactory";
 import type { FeedDao } from "../dao/FeedDao";
 import type { StatusDao } from "../dao/StatusDao";
 import { Service } from "./Service";
+import { SessionService } from "./SessionService";
 
 export class StatusService implements Service {
   private readonly feedDao: FeedDao;
   private readonly statusDao: StatusDao;
+  private readonly sessionService: SessionService;
 
   public constructor(daoFactory: DaoFactory) {
     this.feedDao = daoFactory.getFeedDao();
     this.statusDao = daoFactory.getStatusDao();
+    this.sessionService = new SessionService(daoFactory);
   }
 
   public async loadMoreFeedItems(
@@ -26,7 +29,8 @@ export class StatusService implements Service {
     pageSize: number,
     lastItem: StatusDto | null,
   ): Promise<[StatusDto[], boolean]> {
-    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+    await this.sessionService.validateSession(token);
+    this.validatePageRequest(userAlias, pageSize, lastItem);
 
     const page = await this.feedDao.getPageOfFeedItems(
       userAlias,
@@ -61,7 +65,8 @@ export class StatusService implements Service {
     pageSize: number,
     lastItem: StatusDto | null,
   ): Promise<[StatusDto[], boolean]> {
-    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+    await this.sessionService.validateSession(token);
+    this.validatePageRequest(userAlias, pageSize, lastItem);
 
     const page = await this.statusDao.getPageOfStoryItems(
       userAlias,
@@ -72,19 +77,18 @@ export class StatusService implements Service {
   }
 
   public async postStatus(token: string, newStatus: StatusDto): Promise<void> {
-    requireNonEmptyStrings(token);
+    await this.sessionService.validateSession(token);
     requireStatusDto(newStatus);
 
     await this.statusDao.putItem(newStatus);
   }
 
   private validatePageRequest(
-    token: string,
     userAlias: string,
     pageSize: number,
     lastItem: StatusDto | null,
   ): void {
-    requireNonEmptyStrings(token, userAlias);
+    requireNonEmptyStrings(userAlias);
     requirePositiveNumber(pageSize);
 
     if (lastItem !== null) {

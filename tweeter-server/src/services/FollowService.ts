@@ -10,14 +10,17 @@ import type { DaoFactory } from "../dao/DaoFactory";
 import type { FollowDao } from "../dao/FollowDao";
 import type { UserPage } from "../dao/DataPage";
 import type { UserDao } from "../dao/UserDao";
+import { SessionService } from "./SessionService";
 
 export class FollowService {
   private readonly followDao: FollowDao;
   private readonly userDao: UserDao;
-  
+  private readonly sessionService: SessionService;
+
   public constructor(private readonly daoFactory: DaoFactory) {
     this.followDao = daoFactory.getFollowDao();
     this.userDao = daoFactory.getUserDao();
+    this.sessionService = new SessionService(daoFactory);
   }
 
   public async loadMoreFollowees(
@@ -26,7 +29,8 @@ export class FollowService {
     pageSize: number,
     lastItem: UserDto | null,
   ): Promise<UserPage> {
-    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+    await this.sessionService.validateSession(token);
+    this.validatePageRequest(userAlias, pageSize, lastItem);
     const page = await this.followDao.getPageOfFollowees(
       userAlias,
       pageSize,
@@ -45,7 +49,8 @@ export class FollowService {
     pageSize: number,
     lastItem: UserDto | null,
   ): Promise<UserPage> {
-    this.validatePageRequest(token, userAlias, pageSize, lastItem);
+    await this.sessionService.validateSession(token);
+    this.validatePageRequest(userAlias, pageSize, lastItem);
     const page = await this.followDao.getPageOfFollowers(
       userAlias,
       pageSize,
@@ -59,12 +64,11 @@ export class FollowService {
   }
 
   private validatePageRequest(
-    token: string,
     userAlias: string,
     pageSize: number,
     lastItem: UserDto | null,
   ): void {
-    requireNonEmptyStrings(token, userAlias);
+    requireNonEmptyStrings(userAlias);
     requirePositiveNumber(pageSize);
 
     if (lastItem !== null) {

@@ -26,16 +26,6 @@ export class AuthService implements Service {
     this.userDao = daoFactory.getUserDao();
   }
 
-  public async validateSession(token: string): Promise<string | null> {
-    requireNonEmptyStrings(token);
-
-    const session = await this.sessionDao.getItem(token);
-    if (session === undefined) {
-      throw new Error("Action Not Allowed");
-    }
-    return session.userAlias;
-  }
-
   public async login(
     alias: string,
     password: string,

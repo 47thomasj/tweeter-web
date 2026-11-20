@@ -18,10 +18,22 @@ export class AuthService implements Service {
   private readonly sessionDao: SessionDao;
   private readonly userDao: UserDao;
 
+  private readonly sessionLifetimeMilliseconds = 30 * 60 * 1000;
+
   public constructor(daoFactory: DaoFactory) {
     this.authDao = daoFactory.getAuthDao();
     this.sessionDao = daoFactory.getSessionDao();
     this.userDao = daoFactory.getUserDao();
+  }
+
+  public async validateSession(token: string): Promise<string | null> {
+    requireNonEmptyStrings(token);
+
+    const session = await this.sessionDao.getItem(token);
+    if (session === undefined) {
+      throw new Error("Action Not Allowed");
+    }
+    return session.userAlias;
   }
 
   public async login(
@@ -42,7 +54,12 @@ export class AuthService implements Service {
     }
 
     const authToken = this.createAuthToken();
-    await this.sessionDao.putItem(authToken);
+    await this.sessionDao.putItem({
+      token: authToken.token,
+      timestamp: authToken.timestamp,
+      userAlias: user.alias,
+      expiresAt: authToken.timestamp + this.sessionLifetimeMilliseconds,
+    });
     return [user, authToken];
   }
 

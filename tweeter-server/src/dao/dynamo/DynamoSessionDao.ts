@@ -1,30 +1,27 @@
 // Partially written by AI.
-import type { AuthTokenDto } from "tweeter-shared";
 import type { SessionDao } from "../SessionDao";
 import { DynamoDao } from "./DynamoDao";
+import type { SessionDto } from "../SessionDao";
 
 export class DynamoSessionDao
-  extends DynamoDao<AuthTokenDto, [token: string]>
+  extends DynamoDao<SessionDto, [token: string]>
   implements SessionDao
 {
-  private static readonly tokenLifetimeMilliseconds = 30 * 60 * 1000;
-
   private readonly tokenAttr = "token";
   private readonly timestampAttr = "timestamp";
+  private readonly userAliasAttr = "user_alias";
   private readonly expiresAtAttr = "expires_at";
 
   public constructor(tokensTableName: string) {
     super(tokensTableName);
   }
 
-  protected mapItem(authToken: AuthTokenDto): Record<string, string | number> {
+  protected mapItem(session: SessionDto): Record<string, string | number> {
     return {
-      [this.tokenAttr]: authToken.token,
-      [this.timestampAttr]: authToken.timestamp,
-      [this.expiresAtAttr]: Math.floor(
-        (authToken.timestamp + DynamoSessionDao.tokenLifetimeMilliseconds) /
-          1000,
-      ),
+      [this.tokenAttr]: session.token,
+      [this.timestampAttr]: session.timestamp,
+      [this.userAliasAttr]: session.userAlias,
+      [this.expiresAtAttr]: session.expiresAt,
     };
   }
 
@@ -36,10 +33,12 @@ export class DynamoSessionDao
 
   protected produceItemFromReadItem(
     readItem: Record<string, unknown>,
-  ): AuthTokenDto {
+  ): SessionDto {
     return {
       token: this.readString(readItem, this.tokenAttr),
       timestamp: this.readNumber(readItem, this.timestampAttr),
+      userAlias: this.readString(readItem, this.userAliasAttr),
+      expiresAt: this.readNumber(readItem, this.expiresAtAttr),
     };
   }
 }

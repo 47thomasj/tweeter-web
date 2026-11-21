@@ -96,7 +96,7 @@ data "archive_file" "lambda" {
 
   type        = "zip"
   source_file = "${path.module}/../tweeter-server/dist/lambda/${each.value.source_file}"
-  output_path = "${path.module}/${trimsuffix(basename(each.value.source_file), ".js")}.zip"
+  output_path = "${path.module}/zip/${trimsuffix(basename(each.value.source_file), ".js")}.zip"
 }
 
 resource "aws_lambda_function" "lambda" {

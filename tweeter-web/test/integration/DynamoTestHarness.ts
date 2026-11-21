@@ -268,6 +268,37 @@ export class DynamoTestHarness {
     this.trackCleanup(INTEGRATION_TABLES.sessions, { token });
   }
 
+  public trackApiFollow(
+    followerAlias: string,
+    followeeAlias: string,
+  ): void {
+    this.assertOwnedAlias(followerAlias);
+    this.assertOwnedAlias(followeeAlias);
+    this.trackCleanup(INTEGRATION_TABLES.follows, {
+      follower_handle: followerAlias,
+      followee_handle: followeeAlias,
+    });
+  }
+
+  public trackApiStatus(userAlias: string, timestamp: number): void {
+    this.assertOwnedAlias(userAlias);
+    this.trackCleanup(INTEGRATION_TABLES.statuses, {
+      user_alias: userAlias,
+      timestamp,
+    });
+  }
+
+  public trackApiFeedReference(
+    feedUserAlias: string,
+    timestamp: number,
+  ): void {
+    this.assertOwnedAlias(feedUserAlias);
+    this.trackCleanup(INTEGRATION_TABLES.feed, {
+      feed_user_alias: feedUserAlias,
+      timestamp,
+    });
+  }
+
   public async getUser(alias: string): Promise<DynamoItem | undefined> {
     this.assertOwnedAlias(alias);
     return this.getItem(INTEGRATION_TABLES.users, { alias });
@@ -295,6 +326,17 @@ export class DynamoTestHarness {
     });
   }
 
+  public async getFeedReference(
+    feedUserAlias: string,
+    timestamp: number,
+  ): Promise<DynamoItem | undefined> {
+    this.assertOwnedAlias(feedUserAlias);
+    return this.getItem(INTEGRATION_TABLES.feed, {
+      feed_user_alias: feedUserAlias,
+      timestamp,
+    });
+  }
+
   public async waitForFollowerIndex(
     followerAlias: string,
     followeeAlias: string,
@@ -317,6 +359,30 @@ export class DynamoTestHarness {
         (item) => item.follower_handle === followerAlias,
       );
     }, `follow index entry '${followerAlias}' -> '${followeeAlias}'`);
+  }
+
+  public async waitForFollowerIndexRemoval(
+    followerAlias: string,
+    followeeAlias: string,
+  ): Promise<void> {
+    this.assertOwnedAlias(followerAlias);
+    this.assertOwnedAlias(followeeAlias);
+
+    await this.waitFor(async () => {
+      const output = await this.client.send(
+        new QueryCommand({
+          TableName: INTEGRATION_TABLES.follows,
+          IndexName: "follows_index",
+          KeyConditionExpression: "followee_handle = :followee",
+          ExpressionAttributeValues: {
+            ":followee": followeeAlias,
+          },
+        }),
+      );
+      return !(output.Items ?? []).some(
+        (item) => item.follower_handle === followerAlias,
+      );
+    }, `follow index removal '${followerAlias}' -> '${followeeAlias}'`);
   }
 
   public async cleanup(): Promise<void> {

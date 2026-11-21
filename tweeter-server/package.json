@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "build": "npm run compile && npm run bundle",
-    "bundle": "node scripts/bundleLambdas.js",
+    "bundle": "node ../terraform/deploy/bundleLambdas.js",
     "compile": "npm run clean && tsc",
     "clean": "rimraf dist"
   },

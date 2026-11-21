@@ -1,3 +1,5 @@
+# Partially written by AI.
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
@@ -14,7 +16,7 @@
 # terraform
 **/.terraform
 **/.terraform.lock.hcl
-terraform/*.zip
+/terraform/zip/
 **/terraform.tfstate
 
 # misc

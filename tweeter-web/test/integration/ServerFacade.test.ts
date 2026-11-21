@@ -36,6 +36,7 @@ import {
   PostStatusRequest,
   RegisterRequest,
   StatusDto,
+  Type,
   UnfollowRequest,
   UserDto,
 } from "tweeter-shared";
@@ -289,6 +290,188 @@ describe("ServerFacade.getFollowerCount", () => {
     );
 
     expect(followerCount).toBe(followerUsers.length);
+  });
+});
+
+describe("ServerFacade.getUser", () => {
+  it("returns a persisted user", async () => {
+    const user = await serverFacade.getUser({
+      token: authToken.token,
+      alias: primaryUser.alias,
+    });
+
+    expect(user?.dto).toEqual(primaryUser);
+  });
+});
+
+describe("ServerFacade follow lifecycle", () => {
+  it("follows, lists, counts, and unfollows a user", async () => {
+    const selectedUser = followerUsers[0];
+    harness.trackApiFollow(primaryUser.alias, selectedUser.alias);
+
+    expect(
+      await serverFacade.getIsFollowerStatus({
+        token: authToken.token,
+        user: primaryUser,
+        selectedUser,
+      }),
+    ).toBe(false);
+
+    const followCounts = await serverFacade.follow({
+      token: authToken.token,
+      userToFollow: selectedUser,
+    });
+    expect(followCounts).toEqual([
+      expect.any(Number),
+      expect.any(Number),
+    ]);
+    await harness.waitForFollowerIndex(
+      primaryUser.alias,
+      selectedUser.alias,
+    );
+
+    expect(
+      await serverFacade.getIsFollowerStatus({
+        token: authToken.token,
+        user: primaryUser,
+        selectedUser,
+      }),
+    ).toBe(true);
+
+    const [followees] = await serverFacade.getMoreFollowees({
+      token: authToken.token,
+      userAlias: primaryUser.alias,
+      pageSize: 10,
+      lastItem: null,
+    });
+    expect(followees.map((user) => user.dto)).toContainEqual(selectedUser);
+
+    const [followers] = await serverFacade.getMoreFollowers({
+      token: authToken.token,
+      userAlias: selectedUser.alias,
+      pageSize: 10,
+      lastItem: null,
+    });
+    expect(followers.map((user) => user.dto)).toContainEqual(primaryUser);
+
+    expect(
+      await serverFacade.getFolloweeCount(
+        makeFollowCountRequest(authToken.token, primaryUser),
+      ),
+    ).toBe(1);
+    expect(
+      await serverFacade.getFollowerCount(
+        makeFollowCountRequest(authToken.token, selectedUser),
+      ),
+    ).toBe(1);
+
+    const unfollowCounts = await serverFacade.unfollow({
+      token: authToken.token,
+      userToUnfollow: selectedUser,
+    });
+    expect(unfollowCounts).toEqual([
+      expect.any(Number),
+      expect.any(Number),
+    ]);
+    await harness.waitForFollowerIndexRemoval(
+      primaryUser.alias,
+      selectedUser.alias,
+    );
+
+    expect(
+      await serverFacade.getIsFollowerStatus({
+        token: authToken.token,
+        user: primaryUser,
+        selectedUser,
+      }),
+    ).toBe(false);
+    expect(
+      await serverFacade.getFolloweeCount(
+        makeFollowCountRequest(authToken.token, primaryUser),
+      ),
+    ).toBe(0);
+    expect(
+      await serverFacade.getFollowerCount(
+        makeFollowCountRequest(authToken.token, selectedUser),
+      ),
+    ).toBe(0);
+  });
+});
+
+describe("ServerFacade.postStatus", () => {
+  it("persists a story item and fans it out to every follower", async () => {
+    const post = `Integration status ${Date.now()}`;
+    const status: StatusDto = {
+      post,
+      user: primaryUser,
+      timestamp: Date.now(),
+      segments: [
+        {
+          text: post,
+          startPosition: 0,
+          endPosition: post.length,
+          type: Type.text,
+        },
+      ],
+    };
+    harness.trackApiStatus(primaryUser.alias, status.timestamp);
+    for (const follower of followerUsers) {
+      harness.trackApiFeedReference(follower.alias, status.timestamp);
+    }
+
+    await serverFacade.postStatus({
+      token: authToken.token,
+      status,
+    });
+
+    expect(
+      await harness.getStatus(primaryUser.alias, status.timestamp),
+    ).toEqual(
+      expect.objectContaining({
+        user_alias: primaryUser.alias,
+        timestamp: status.timestamp,
+        post,
+      }),
+    );
+
+    const [storyItems] = await serverFacade.loadMoreStoryItems({
+      token: authToken.token,
+      userAlias: primaryUser.alias,
+      pageSize: 10,
+      lastItem: null,
+    });
+    expect(storyItems.map((item) => item.dto)).toContainEqual(status);
+
+    for (const follower of followerUsers) {
+      expect(
+        await harness.getFeedReference(follower.alias, status.timestamp),
+      ).toEqual({
+        feed_user_alias: follower.alias,
+        status_user_alias: primaryUser.alias,
+        timestamp: status.timestamp,
+      });
+
+      const [feedItems] = await serverFacade.loadMoreFeedItems({
+        token: authToken.token,
+        userAlias: follower.alias,
+        pageSize: 10,
+        lastItem: null,
+      });
+      expect(feedItems.map((item) => item.dto)).toContainEqual(status);
+    }
+  });
+});
+
+describe("ServerFacade.logout", () => {
+  it("deletes the persisted session", async () => {
+    const logoutToken = await harness.seedSession(
+      primaryUser.alias,
+      "logout-session",
+    );
+
+    await serverFacade.logout({ token: logoutToken.token });
+
+    expect(await harness.getSession(logoutToken.token)).toBeUndefined();
   });
 });
 

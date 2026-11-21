@@ -8,15 +8,21 @@ export interface FeedItem {
   timestamp: number;
 }
 
+export type FeedItemKey = Pick<FeedItem, "statusUserAlias" | "timestamp">;
+
 export interface FeedDao extends Dao<
   FeedItem,
-  [feedUserAlias: string, timestamp: number]
+  [
+    feedUserAlias: string,
+    statusUserAlias: string,
+    timestamp: number,
+  ]
 > {
   putBatchFeedItems(items: readonly FeedItem[]): Promise<void>;
 
   getPageOfFeedItems(
     feedUserAlias: string,
     pageSize: number,
-    lastTimestamp?: number,
+    lastItem?: FeedItemKey,
   ): Promise<DataPage<FeedItem>>;
 }

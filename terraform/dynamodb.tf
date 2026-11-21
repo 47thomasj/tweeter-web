@@ -73,7 +73,7 @@ resource "aws_dynamodb_table" "feed" {
   name           = "feed"
   billing_mode   = "PROVISIONED"
   hash_key       = "feed_user_alias"
-  range_key      = "timestamp"
+  range_key      = "sort_key"
   read_capacity  = 3
   write_capacity = 3
 
@@ -83,8 +83,8 @@ resource "aws_dynamodb_table" "feed" {
   }
 
   attribute {
-    name = "timestamp"
-    type = "N"
+    name = "sort_key"
+    type = "S"
   }
 }
 

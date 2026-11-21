@@ -9,20 +9,23 @@ import {
 } from "./RequestValidation";
 import type { AuthDao } from "../dao/AuthDao";
 import type { DaoFactory } from "../dao/DaoFactory";
+import type { ImageDao } from "../dao/ImageDao";
 import type { SessionDao } from "../dao/SessionDao";
+import { SESSION_LIFETIME_SECONDS } from "../dao/SessionDao";
 import type { UserDao } from "../dao/UserDao";
 import bcrypt from "bcryptjs";
 import { ClientError } from "./ClientError";
 
 export class AuthService implements Service {
   private readonly authDao: AuthDao;
+  private readonly imageDao: ImageDao;
   private readonly sessionDao: SessionDao;
+  private readonly sessionLifetimeSeconds = SESSION_LIFETIME_SECONDS;
   private readonly userDao: UserDao;
-
-  private readonly sessionLifetimeSeconds = 30 * 60;
 
   public constructor(daoFactory: DaoFactory) {
     this.authDao = daoFactory.getAuthDao();
+    this.imageDao = daoFactory.getImageDao();
     this.sessionDao = daoFactory.getSessionDao();
     this.userDao = daoFactory.getUserDao();
   }
@@ -76,11 +79,15 @@ export class AuthService implements Service {
     }
 
     const passwordHash = await this.hashPassword(password);
-    const user = await this.userDao.createUser(
-      { alias, firstName, lastName },
-      imageBytes,
-      normalizedImageFileExtension,
-    );
+    const imageFileName = `${alias}.${normalizedImageFileExtension}`;
+    await this.imageDao.putItem({ imageBytes, fileName: imageFileName });
+    const user: UserDto = {
+      alias,
+      firstName,
+      lastName,
+      imageUrl: this.imageDao.getImageUrl(imageFileName),
+    };
+    await this.userDao.putItem(user);
     await this.authDao.putItem({
       alias,
       passwordHash,

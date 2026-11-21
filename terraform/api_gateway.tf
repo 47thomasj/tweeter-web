@@ -19,6 +19,12 @@ locals {
     "method.response.header.Access-Control-Allow-Origin" = "'*'"
   }
 
+  gateway_cors_response_parameters = {
+    "gatewayresponse.header.Access-Control-Allow-Headers" = "'Content-Type'"
+    "gatewayresponse.header.Access-Control-Allow-Methods" = "'OPTIONS,POST'"
+    "gatewayresponse.header.Access-Control-Allow-Origin"  = "'*'"
+  }
+
   lambda_response_template = <<-VTL
     #set($response = $input.path('$'))
     #if($response.success == false)
@@ -134,13 +140,18 @@ resource "aws_api_gateway_gateway_response" "default_5xx" {
   response_type = "DEFAULT_5XX"
   status_code   = "500"
 
-  response_parameters = {
-    "gatewayresponse.header.Access-Control-Allow-Origin" = "'*'"
-  }
+  response_parameters = local.gateway_cors_response_parameters
 
   response_templates = {
     "application/json" = local.lambda_server_error_template
   }
+}
+
+resource "aws_api_gateway_gateway_response" "default_4xx" {
+  rest_api_id   = aws_api_gateway_rest_api.tweeter.id
+  response_type = "DEFAULT_4XX"
+
+  response_parameters = local.gateway_cors_response_parameters
 }
 
 # Browser clients send an OPTIONS preflight before JSON POST requests.
@@ -248,6 +259,7 @@ resource "aws_api_gateway_deployment" "tweeter" {
         aws_api_gateway_integration_response.lambda_error[key].id
       ]
       gateway_responses = [
+        aws_api_gateway_gateway_response.default_4xx.id,
         aws_api_gateway_gateway_response.default_5xx.id
       ]
       response_templates = {
@@ -277,6 +289,7 @@ resource "aws_api_gateway_deployment" "tweeter" {
     aws_api_gateway_integration_response.lambda,
     aws_api_gateway_integration_response.lambda_error,
     aws_api_gateway_integration_response.cors,
+    aws_api_gateway_gateway_response.default_4xx,
     aws_api_gateway_gateway_response.default_5xx,
   ]
 }

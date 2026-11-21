@@ -134,6 +134,7 @@ export class DynamoTestHarness {
   public async seedSession(
     userAlias: string,
     label: string,
+    expiresAt?: number,
   ): Promise<AuthToken> {
     this.assertOwnedAlias(userAlias);
     const timestamp = Date.now();
@@ -144,7 +145,8 @@ export class DynamoTestHarness {
         token,
         timestamp,
         user_alias: userAlias,
-        expires_at: Math.floor(timestamp / 1000) + 30 * 60,
+        expires_at:
+          expiresAt ?? Math.floor(timestamp / 1000) + 30 * 60,
       },
       { token },
     );
@@ -199,12 +201,13 @@ export class DynamoTestHarness {
       INTEGRATION_TABLES.feed,
       {
         feed_user_alias: feedUserAlias,
+        sort_key: this.feedSortKey(statusUserAlias, timestamp),
         status_user_alias: statusUserAlias,
         timestamp,
       },
       {
         feed_user_alias: feedUserAlias,
-        timestamp,
+        sort_key: this.feedSortKey(statusUserAlias, timestamp),
       },
     );
   }
@@ -290,12 +293,14 @@ export class DynamoTestHarness {
 
   public trackApiFeedReference(
     feedUserAlias: string,
+    statusUserAlias: string,
     timestamp: number,
   ): void {
     this.assertOwnedAlias(feedUserAlias);
+    this.assertOwnedAlias(statusUserAlias);
     this.trackCleanup(INTEGRATION_TABLES.feed, {
       feed_user_alias: feedUserAlias,
-      timestamp,
+      sort_key: this.feedSortKey(statusUserAlias, timestamp),
     });
   }
 
@@ -328,13 +333,19 @@ export class DynamoTestHarness {
 
   public async getFeedReference(
     feedUserAlias: string,
+    statusUserAlias: string,
     timestamp: number,
   ): Promise<DynamoItem | undefined> {
     this.assertOwnedAlias(feedUserAlias);
+    this.assertOwnedAlias(statusUserAlias);
     return this.getItem(INTEGRATION_TABLES.feed, {
       feed_user_alias: feedUserAlias,
-      timestamp,
+      sort_key: this.feedSortKey(statusUserAlias, timestamp),
     });
+  }
+
+  public feedSortKey(statusUserAlias: string, timestamp: number): string {
+    return `${timestamp.toString().padStart(16, "0")}#${statusUserAlias}`;
   }
 
   public async waitForFollowerIndex(

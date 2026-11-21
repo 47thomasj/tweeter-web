@@ -3,6 +3,7 @@ import type { DaoFactory } from "../DaoFactory";
 import type { AuthDao } from "../AuthDao";
 import type { FeedDao } from "../FeedDao";
 import type { FollowDao } from "../FollowDao";
+import type { ImageDao } from "../ImageDao";
 import type { SessionDao } from "../SessionDao";
 import type { StatusDao } from "../StatusDao";
 import type { UserDao } from "../UserDao";
@@ -12,12 +13,14 @@ import { DynamoFollowDao } from "./DynamoFollowDao";
 import { DynamoSessionDao } from "./DynamoSessionDao";
 import { DynamoStatusDao } from "./DynamoStatusDao";
 import { DynamoUserDao } from "./DynamoUserDao";
+import { S3Dao } from "../s3/S3Dao";
 
 export class DynamoDaoFactory implements DaoFactory {
   private readonly authDao: AuthDao;
-  private readonly sessionDao: SessionDao
   private readonly feedDao: FeedDao;
   private readonly followDao: FollowDao;
+  private readonly imageDao: ImageDao;
+  private readonly sessionDao: SessionDao;
   private readonly statusDao: StatusDao;
   private readonly userDao: UserDao;
 
@@ -36,6 +39,7 @@ export class DynamoDaoFactory implements DaoFactory {
     this.followDao = new DynamoFollowDao(followTableName, followIndexName);
     this.statusDao = new DynamoStatusDao(statusTableName);
     this.feedDao = new DynamoFeedDao(feedTableName);
+    this.imageDao = new S3Dao();
   }
 
   public getAuthDao(): AuthDao {
@@ -48,6 +52,10 @@ export class DynamoDaoFactory implements DaoFactory {
 
   public getFollowDao(): FollowDao {
     return this.followDao;
+  }
+
+  public getImageDao(): ImageDao {
+    return this.imageDao;
   }
 
   public getSessionDao(): SessionDao {

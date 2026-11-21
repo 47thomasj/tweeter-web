@@ -7,4 +7,5 @@ export interface SessionDto extends AuthTokenDto {
     expiresAt: number;
 }
 
+export const SESSION_LIFETIME_SECONDS = 30 * 60;
 export interface SessionDao extends Dao<SessionDto, [token: string]> {}

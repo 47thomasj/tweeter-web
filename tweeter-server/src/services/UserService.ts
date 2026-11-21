@@ -7,6 +7,7 @@ import type { DaoFactory } from "../dao/DaoFactory";
 import type { UserDao } from "../dao/UserDao";
 import type { FollowDao } from "../dao/FollowDao";
 import { SessionService } from "./SessionService";
+import { ClientError } from "./ClientError";
 
 export class UserService implements Service {
   private readonly userDao: UserDao;
@@ -64,6 +65,21 @@ export class UserService implements Service {
     const userAlias = await this.sessionService.validateSession(token);
     requireUserDto(userToFollow);
 
+    if (userAlias === userToFollow.alias) {
+      throw new ClientError("Cannot follow yourself");
+    }
+
+    const [storedUser, existingFollow] = await Promise.all([
+      this.userDao.getItem(userToFollow.alias),
+      this.followDao.getItem(userAlias, userToFollow.alias),
+    ]);
+    if (storedUser === undefined) {
+      throw new ClientError("User does not exist");
+    }
+    if (existingFollow !== undefined) {
+      throw new ClientError("Already following user");
+    }
+
     await this.followDao.putItem({
       followerHandle: userAlias,
       followeeHandle: userToFollow.alias,
@@ -79,8 +95,23 @@ export class UserService implements Service {
     token: string,
     userToUnfollow: UserDto,
   ): Promise<[followerCount: number, followeeCount: number]> {
-    requireUserDto(userToUnfollow);
     const userAlias = await this.sessionService.validateSession(token);
+    requireUserDto(userToUnfollow);
+
+    if (userAlias === userToUnfollow.alias) {
+      throw new ClientError("Cannot unfollow yourself");
+    }
+
+    const [storedUser, existingFollow] = await Promise.all([
+      this.userDao.getItem(userToUnfollow.alias),
+      this.followDao.getItem(userAlias, userToUnfollow.alias),
+    ]);
+    if (storedUser === undefined) {
+      throw new ClientError("User does not exist");
+    }
+    if (existingFollow === undefined) {
+      throw new ClientError("Not following user");
+    }
 
     await this.followDao.deleteItem(userAlias, userToUnfollow.alias);
 

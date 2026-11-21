@@ -73,6 +73,7 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
     const params = {
       TableName: this.tableName,
       Key: this.produceKey(...args),
+      ConsistentRead: true,
     };
 
     const output = await this.client.send(new GetCommand(params));

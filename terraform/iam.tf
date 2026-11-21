@@ -26,6 +26,8 @@ resource "aws_iam_role_policy_attachment" "lambda_logging" {
 data "aws_iam_policy_document" "lambda_s3_image_access" {
   statement {
     actions = [
+      "s3:DeleteObject",
+      "s3:GetObject",
       "s3:PutObject",
       "s3:PutObjectAcl",
     ]

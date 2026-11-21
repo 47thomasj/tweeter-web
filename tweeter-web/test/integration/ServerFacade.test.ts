@@ -77,6 +77,26 @@ const EMPTY_STATUS_DTO: StatusDto = {
   segments: [],
 };
 
+function makeStatusDto(
+  user: UserDto,
+  post: string,
+  timestamp = Date.now(),
+): StatusDto {
+  return {
+    post,
+    user,
+    timestamp,
+    segments: [
+      {
+        text: post,
+        startPosition: 0,
+        endPosition: post.length,
+        type: Type.text,
+      },
+    ],
+  };
+}
+
 const EMPTY_LOGIN_REQUEST: LoginRequest = {
   alias: "",
   password: "",
@@ -304,6 +324,46 @@ describe("ServerFacade.getUser", () => {
   });
 });
 
+describe("ServerFacade session expiration", () => {
+  it("extends a valid session after authenticated activity", async () => {
+    const originalExpiresAt = Math.floor(Date.now() / 1000) + 60;
+    const slidingToken = await harness.seedSession(
+      primaryUser.alias,
+      "sliding-session",
+      originalExpiresAt,
+    );
+
+    await serverFacade.getUser({
+      token: slidingToken.token,
+      alias: primaryUser.alias,
+    });
+
+    const refreshedSession = await harness.getSession(slidingToken.token);
+    expect(refreshedSession?.expires_at).toBeGreaterThan(
+      originalExpiresAt,
+    );
+  });
+
+  it("rejects and deletes an expired session", async () => {
+    const expiredToken = await harness.seedSession(
+      primaryUser.alias,
+      "expired-session",
+      Math.floor(Date.now() / 1000) - 1,
+    );
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.getUser({
+          token: expiredToken.token,
+          alias: primaryUser.alias,
+        }),
+      ),
+      "Session expired",
+    );
+    expect(await harness.getSession(expiredToken.token)).toBeUndefined();
+  });
+});
+
 describe("ServerFacade follow lifecycle", () => {
   it("follows, lists, counts, and unfollows a user", async () => {
     const selectedUser = followerUsers[0];
@@ -398,6 +458,63 @@ describe("ServerFacade follow lifecycle", () => {
   });
 });
 
+describe("ServerFacade follow constraints", () => {
+  it("rejects following yourself", async () => {
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.follow({
+          token: authToken.token,
+          userToFollow: primaryUser,
+        }),
+      ),
+      "Cannot follow yourself",
+    );
+  });
+
+  it("rejects following a user who does not exist", async () => {
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.follow({
+          token: authToken.token,
+          userToFollow: harness.makeUser("missing-follow-target"),
+        }),
+      ),
+      "User does not exist",
+    );
+  });
+
+  it("rejects duplicate follows", async () => {
+    const target = harness.makeUser("duplicate-follow-target");
+    await harness.seedUser(target);
+    await harness.seedFollow(primaryUser.alias, target.alias);
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.follow({
+          token: authToken.token,
+          userToFollow: target,
+        }),
+      ),
+      "Already following user",
+    );
+  });
+
+  it("rejects unfollowing a user who is not followed", async () => {
+    const target = harness.makeUser("missing-unfollow-target");
+    await harness.seedUser(target);
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.unfollow({
+          token: authToken.token,
+          userToUnfollow: target,
+        }),
+      ),
+      "Not following user",
+    );
+  });
+});
+
 describe("ServerFacade.postStatus", () => {
   it("persists a story item and fans it out to every follower", async () => {
     const post = `Integration status ${Date.now()}`;
@@ -416,7 +533,11 @@ describe("ServerFacade.postStatus", () => {
     };
     harness.trackApiStatus(primaryUser.alias, status.timestamp);
     for (const follower of followerUsers) {
-      harness.trackApiFeedReference(follower.alias, status.timestamp);
+      harness.trackApiFeedReference(
+        follower.alias,
+        primaryUser.alias,
+        status.timestamp,
+      );
     }
 
     await serverFacade.postStatus({
@@ -444,9 +565,17 @@ describe("ServerFacade.postStatus", () => {
 
     for (const follower of followerUsers) {
       expect(
-        await harness.getFeedReference(follower.alias, status.timestamp),
+        await harness.getFeedReference(
+          follower.alias,
+          primaryUser.alias,
+          status.timestamp,
+        ),
       ).toEqual({
         feed_user_alias: follower.alias,
+        sort_key: harness.feedSortKey(
+          primaryUser.alias,
+          status.timestamp,
+        ),
         status_user_alias: primaryUser.alias,
         timestamp: status.timestamp,
       });
@@ -459,6 +588,157 @@ describe("ServerFacade.postStatus", () => {
       });
       expect(feedItems.map((item) => item.dto)).toContainEqual(status);
     }
+  });
+
+  it("rejects spoofed author data", async () => {
+    const status = makeStatusDto(
+      { ...primaryUser, imageUrl: "https://example.com/spoofed.png" },
+      `Spoofed author ${Date.now()}`,
+    );
+    harness.trackApiStatus(primaryUser.alias, status.timestamp);
+    for (const follower of followerUsers) {
+      harness.trackApiFeedReference(
+        follower.alias,
+        primaryUser.alias,
+        status.timestamp,
+      );
+    }
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.postStatus({
+          token: authToken.token,
+          status,
+        }),
+      ),
+      "Action Not Allowed",
+    );
+  });
+
+  it("rejects malformed post segments", async () => {
+    const status = makeStatusDto(
+      primaryUser,
+      `Malformed segments ${Date.now()}`,
+    );
+    status.segments[0]!.startPosition = -1;
+    harness.trackApiStatus(primaryUser.alias, status.timestamp);
+    for (const follower of followerUsers) {
+      harness.trackApiFeedReference(
+        follower.alias,
+        primaryUser.alias,
+        status.timestamp,
+      );
+    }
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.postStatus({
+          token: authToken.token,
+          status,
+        }),
+      ),
+    );
+  });
+
+  it("rejects overwriting an existing status", async () => {
+    const status = makeStatusDto(
+      primaryUser,
+      `Duplicate status ${Date.now()}`,
+    );
+    await harness.seedStatus(status);
+    for (const follower of followerUsers) {
+      harness.trackApiFeedReference(
+        follower.alias,
+        primaryUser.alias,
+        status.timestamp,
+      );
+    }
+
+    expectBadRequest(
+      await captureHttpResult(() =>
+        serverFacade.postStatus({
+          token: authToken.token,
+          status,
+        }),
+      ),
+      "Status already exists",
+    );
+  });
+
+  it("keeps posts from different authors with the same timestamp", async () => {
+    const secondAuthor = harness.makeUser("same-time-author");
+    await harness.seedUser(secondAuthor);
+    const secondAuthorToken = await harness.seedSession(
+      secondAuthor.alias,
+      "same-time-author-session",
+    );
+
+    const feedOwner = followerUsers[0];
+    await harness.seedFollow(feedOwner.alias, secondAuthor.alias);
+    await harness.waitForFollowerIndex(
+      feedOwner.alias,
+      secondAuthor.alias,
+    );
+
+    const timestamp = Date.now();
+    const firstStatus = makeStatusDto(
+      primaryUser,
+      "First simultaneous status",
+      timestamp,
+    );
+    const secondStatus = makeStatusDto(
+      secondAuthor,
+      "Second simultaneous status",
+      timestamp,
+    );
+    harness.trackApiStatus(primaryUser.alias, timestamp);
+    harness.trackApiStatus(secondAuthor.alias, timestamp);
+    for (const follower of followerUsers) {
+      harness.trackApiFeedReference(
+        follower.alias,
+        primaryUser.alias,
+        timestamp,
+      );
+    }
+    harness.trackApiFeedReference(
+      feedOwner.alias,
+      secondAuthor.alias,
+      timestamp,
+    );
+
+    await serverFacade.postStatus({
+      token: authToken.token,
+      status: firstStatus,
+    });
+    await serverFacade.postStatus({
+      token: secondAuthorToken.token,
+      status: secondStatus,
+    });
+
+    expect(
+      await harness.getFeedReference(
+        feedOwner.alias,
+        primaryUser.alias,
+        timestamp,
+      ),
+    ).toBeDefined();
+    expect(
+      await harness.getFeedReference(
+        feedOwner.alias,
+        secondAuthor.alias,
+        timestamp,
+      ),
+    ).toBeDefined();
+
+    const [feedItems] = await serverFacade.loadMoreFeedItems({
+      token: authToken.token,
+      userAlias: feedOwner.alias,
+      pageSize: 10,
+      lastItem: null,
+    });
+    expect(feedItems.map((item) => item.dto)).toEqual(
+      expect.arrayContaining([firstStatus, secondStatus]),
+    );
   });
 });
 

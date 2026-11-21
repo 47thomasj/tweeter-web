@@ -12,6 +12,7 @@ import type { StatusDao } from "../dao/StatusDao";
 import { Service } from "./Service";
 import { SessionService } from "./SessionService";
 import type { FollowDao } from "../dao/FollowDao";
+import type { UserDao } from "../dao/UserDao";
 import { ClientError } from "./ClientError";
 
 export class StatusService implements Service {
@@ -19,12 +20,14 @@ export class StatusService implements Service {
   private readonly feedDao: FeedDao;
   private readonly statusDao: StatusDao;
   private readonly sessionService: SessionService;
+  private readonly userDao: UserDao;
 
   public constructor(daoFactory: DaoFactory) {
     this.followDao = daoFactory.getFollowDao();
     this.feedDao = daoFactory.getFeedDao();
     this.statusDao = daoFactory.getStatusDao();
     this.sessionService = new SessionService(daoFactory);
+    this.userDao = daoFactory.getUserDao();
   }
 
   public async loadMoreFeedItems(
@@ -39,7 +42,12 @@ export class StatusService implements Service {
     const page = await this.feedDao.getPageOfFeedItems(
       userAlias,
       pageSize,
-      lastItem?.timestamp,
+      lastItem === null
+        ? undefined
+        : {
+            statusUserAlias: lastItem.user.alias,
+            timestamp: lastItem.timestamp,
+          },
     );
     const statuses = await this.statusDao.getBatchStatuses(
       page.items.map((item) => ({
@@ -88,7 +96,23 @@ export class StatusService implements Service {
       throw new ClientError("Action Not Allowed");
     }
 
-    await this.statusDao.putItem(newStatus);
+    const [storedUser, existingStatus] = await Promise.all([
+      this.userDao.getItem(postingUserAlias),
+      this.statusDao.getItem(postingUserAlias, newStatus.timestamp),
+    ]);
+    if (
+      storedUser === undefined ||
+      storedUser.firstName !== newStatus.user.firstName ||
+      storedUser.lastName !== newStatus.user.lastName ||
+      storedUser.imageUrl !== newStatus.user.imageUrl
+    ) {
+      throw new ClientError("Action Not Allowed");
+    }
+    if (existingStatus !== undefined) {
+      throw new ClientError("Status already exists");
+    }
+
+    await this.statusDao.putItem({ ...newStatus, user: storedUser });
 
     const followersOfUser = await this.getAllFollowers(postingUserAlias);
     await this.feedDao.putBatchFeedItems(

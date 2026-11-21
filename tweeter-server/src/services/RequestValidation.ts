@@ -1,6 +1,11 @@
 // Partially written by AI.
 
-import { StatusDto, UserDto } from "tweeter-shared";
+import {
+  Type,
+  type PostSegmentDto,
+  type StatusDto,
+  type UserDto,
+} from "tweeter-shared";
 import { ClientError } from "./ClientError";
 
 const supportedImageFileExtensions = new Set([
@@ -69,10 +74,36 @@ export function requireStatusDto(status: StatusDto | null | undefined): void {
   }
 
   requireNonEmptyStrings(status.post);
+  if (status.post.trim().length === 0) {
+    throwBadRequest();
+  }
   requireUserDto(status.user);
   requirePositiveNumber(status.timestamp);
+  if (!Number.isInteger(status.timestamp)) {
+    throwBadRequest();
+  }
 
   if (!Array.isArray(status.segments) || status.segments.length === 0) {
     throwBadRequest();
+  }
+
+  for (const segment of status.segments as Array<
+    PostSegmentDto | null | undefined
+  >) {
+    if (segment === null || segment === undefined) {
+      throwBadRequest();
+    }
+    requireNonEmptyStrings(segment.text);
+
+    if (
+      !Number.isInteger(segment.startPosition) ||
+      !Number.isInteger(segment.endPosition) ||
+      segment.startPosition < 0 ||
+      segment.endPosition < segment.startPosition ||
+      segment.endPosition > status.post.length ||
+      !Object.values(Type).includes(segment.type)
+    ) {
+      throwBadRequest();
+    }
   }
 }

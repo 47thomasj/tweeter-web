@@ -20,6 +20,12 @@ export class SessionService implements Service {
     if (session === undefined) {
       throw new ClientError("Action Not Allowed");
     }
+
+    if (session.expiresAt <= Math.floor(Date.now() / 1000)) {
+      await this.sessionDao.deleteItem(token);
+      throw new ClientError("Session expired");
+    }
+
     return session.userAlias;
   }
 }

@@ -19,7 +19,7 @@ export class AuthService implements Service {
   private readonly sessionDao: SessionDao;
   private readonly userDao: UserDao;
 
-  private readonly sessionLifetimeMilliseconds = 30 * 60 * 1000;
+  private readonly sessionLifetimeSeconds = 30 * 60;
 
   public constructor(daoFactory: DaoFactory) {
     this.authDao = daoFactory.getAuthDao();
@@ -105,7 +105,8 @@ export class AuthService implements Service {
       token: authToken.token,
       timestamp: authToken.timestamp,
       userAlias,
-      expiresAt: authToken.timestamp + this.sessionLifetimeMilliseconds,
+      expiresAt:
+        Math.floor(authToken.timestamp / 1000) + this.sessionLifetimeSeconds,
     });
     return authToken;
   }

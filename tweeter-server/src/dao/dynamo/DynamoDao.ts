@@ -4,6 +4,9 @@ import {
   BatchGetCommand,
   type BatchGetCommandInput,
   type BatchGetCommandOutput,
+  BatchWriteCommand,
+  type BatchWriteCommandInput,
+  type BatchWriteCommandOutput,
   DeleteCommand,
   DynamoDBDocumentClient,
   GetCommand,
@@ -19,12 +22,16 @@ import type { DataPage } from "../DataPage";
 type BatchKeys = NonNullable<
   NonNullable<BatchGetCommandInput["RequestItems"]>[string]["Keys"]
 >;
+type BatchWrites = NonNullable<
+  NonNullable<BatchWriteCommandInput["RequestItems"]>[string]
+>;
 
 export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
   T,
   KeyArgs
 > {
   private static readonly maxBatchSize = 100;
+  private static readonly maxBatchWriteSize = 25;
   private static readonly maxBatchAttempts = 5;
 
   protected readonly tableName: string;
@@ -126,6 +133,23 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
     return items;
   }
 
+  protected async batchPutItems(items: readonly T[]): Promise<void> {
+    for (
+      let start = 0;
+      start < items.length;
+      start += DynamoDao.maxBatchWriteSize
+    ) {
+      const writes: BatchWrites = items
+        .slice(start, start + DynamoDao.maxBatchWriteSize)
+        .map((item) => ({
+          PutRequest: {
+            Item: this.mapItem(item),
+          },
+        }));
+      await this.writeBatch(writes);
+    }
+  }
+
   private async loadBatch(keys: BatchKeys, items: T[]): Promise<void> {
     let pendingKeys = keys;
     let attempt = 0;
@@ -153,6 +177,33 @@ export abstract class DynamoDao<T, KeyArgs extends unknown[]> implements Dao<
 
       pendingKeys = output.UnprocessedKeys?.[this.tableName]?.Keys ?? [];
       if (pendingKeys.length > 0) {
+        await this.waitBeforeBatchRetry(attempt);
+      }
+      attempt += 1;
+    }
+  }
+
+  private async writeBatch(writes: BatchWrites): Promise<void> {
+    let pendingWrites = writes;
+    let attempt = 0;
+
+    while (pendingWrites.length > 0) {
+      if (attempt >= DynamoDao.maxBatchAttempts) {
+        throw new Error(
+          `DynamoDB did not process all batch writes for '${this.tableName}'`,
+        );
+      }
+
+      const output: BatchWriteCommandOutput = await this.client.send(
+        new BatchWriteCommand({
+          RequestItems: {
+            [this.tableName]: pendingWrites,
+          },
+        }),
+      );
+
+      pendingWrites = output.UnprocessedItems?.[this.tableName] ?? [];
+      if (pendingWrites.length > 0) {
         await this.waitBeforeBatchRetry(attempt);
       }
       attempt += 1;

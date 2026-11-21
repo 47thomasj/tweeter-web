@@ -11,13 +11,17 @@ import type { FeedDao } from "../dao/FeedDao";
 import type { StatusDao } from "../dao/StatusDao";
 import { Service } from "./Service";
 import { SessionService } from "./SessionService";
+import type { FollowDao } from "../dao/FollowDao";
+import { ClientError } from "./ClientError";
 
 export class StatusService implements Service {
+  private readonly followDao: FollowDao;
   private readonly feedDao: FeedDao;
   private readonly statusDao: StatusDao;
   private readonly sessionService: SessionService;
 
   public constructor(daoFactory: DaoFactory) {
+    this.followDao = daoFactory.getFollowDao();
     this.feedDao = daoFactory.getFeedDao();
     this.statusDao = daoFactory.getStatusDao();
     this.sessionService = new SessionService(daoFactory);
@@ -77,10 +81,49 @@ export class StatusService implements Service {
   }
 
   public async postStatus(token: string, newStatus: StatusDto): Promise<void> {
-    await this.sessionService.validateSession(token);
+    const postingUserAlias = await this.sessionService.validateSession(token);
     requireStatusDto(newStatus);
 
+    if (newStatus.user.alias !== postingUserAlias) {
+      throw new ClientError("Action Not Allowed");
+    }
+
     await this.statusDao.putItem(newStatus);
+
+    const followersOfUser = await this.getAllFollowers(postingUserAlias);
+    await this.feedDao.putBatchFeedItems(
+      followersOfUser.map((followerAlias) => ({
+        feedUserAlias: followerAlias,
+        statusUserAlias: postingUserAlias,
+        timestamp: newStatus.timestamp,
+      })),
+    );
+  }
+
+  private async getAllFollowers(userAlias: string): Promise<string[]> {
+    let lastFollower: string | undefined;
+    const followers: string[] = [];
+
+    while (true) {
+      const page = await this.followDao.getPageOfFollowers(
+        userAlias,
+        10,
+        lastFollower,
+      );
+
+      const lastItem = page.items[page.items.length - 1];
+      if (lastItem === undefined) {
+        break;
+      }
+
+      followers.push(...page.items.map((follower) => follower.followerHandle));
+      if (!page.hasMore) {
+        break;
+      }
+      lastFollower = lastItem.followerHandle;
+    }
+
+    return followers;
   }
 
   private validatePageRequest(

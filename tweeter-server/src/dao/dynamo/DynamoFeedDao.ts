@@ -37,6 +37,10 @@ export class DynamoFeedDao
     };
   }
 
+  public putBatchFeedItems(items: readonly FeedItem[]): Promise<void> {
+    return this.batchPutItems(items);
+  }
+
   public async getPageOfFeedItems(
     feedUserAlias: string,
     pageSize: number,

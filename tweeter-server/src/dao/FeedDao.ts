@@ -12,6 +12,8 @@ export interface FeedDao extends Dao<
   FeedItem,
   [feedUserAlias: string, timestamp: number]
 > {
+  putBatchFeedItems(items: readonly FeedItem[]): Promise<void>;
+
   getPageOfFeedItems(
     feedUserAlias: string,
     pageSize: number,

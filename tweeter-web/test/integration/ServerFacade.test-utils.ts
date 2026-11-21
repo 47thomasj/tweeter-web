@@ -87,9 +87,7 @@ export function expectHttpError(
 ): void {
   expect(result.status).toBe(status);
   expect(result.error).toBeInstanceOf(Error);
-  expect((result.error as Error).message).toContain(
-    `HTTP ${status}: ${message}`,
-  );
+  expect((result.error as Error).message).toBe(message);
 }
 
 export function expectBadRequest(

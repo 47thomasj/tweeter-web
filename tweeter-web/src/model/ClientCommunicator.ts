@@ -1,6 +1,7 @@
 // Partially written by AI.
 
 import { TweeterRequest, TweeterResponse } from "tweeter-shared";
+import { UserFacingError } from "./UserFacingError";
 
 export class ClientCommunicator {
   private SERVER_URL: string;
@@ -47,9 +48,16 @@ export class ClientCommunicator {
             : typeof error.errorMessage === "string"
               ? error.errorMessage
               : resp.statusText;
-        throw new Error(`HTTP ${resp.status}: ${message}`);
+        console.error(
+          `Client communicator ${params.method} failed: HTTP ${resp.status}: ${message}`,
+        );
+        throw new UserFacingError(message);
       }
     } catch (error) {
+      if (error instanceof UserFacingError) {
+        throw error;
+      }
+
       throw new Error(
         `Client communicator ${params.method} failed:\n${
           (error as Error).message

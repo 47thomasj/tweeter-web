@@ -1,3 +1,7 @@
+// Partially written by AI.
+
+import { UserFacingError } from "../model/UserFacingError";
+
 export interface View {
   displayErrorMessage(message: string): void;
 }
@@ -18,7 +22,9 @@ export abstract class Presenter<V extends View> {
       await operation();
     } catch (error) {
       this._view.displayErrorMessage(
-        `Failed to ${operationDescription} because of an exception: ${(error as Error).message}`,
+        error instanceof UserFacingError
+          ? error.message
+          : `Failed to ${operationDescription} because of an exception: ${(error as Error).message}`,
       );
     }
   }

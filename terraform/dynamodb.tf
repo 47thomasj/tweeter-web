@@ -123,6 +123,7 @@ data "aws_iam_policy_document" "lambda_dynamodb_access" {
   statement {
     actions = [
       "dynamodb:BatchGetItem",
+      "dynamodb:BatchWriteItem",
       "dynamodb:DeleteItem",
       "dynamodb:GetItem",
       "dynamodb:PutItem",

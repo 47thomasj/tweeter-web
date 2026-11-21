@@ -385,6 +385,19 @@ async function main() {
         assert(response.followerCount === 1, "unexpected follower count"),
     );
 
+    await putTrackedItem(
+      TABLES.follows,
+      {
+        follower_handle: targetUser.alias,
+        followee_handle: currentUser.alias,
+      },
+      {
+        follower_handle: targetUser.alias,
+        followee_handle: currentUser.alias,
+      },
+    );
+    await waitForFollowIndex(targetUser.alias, currentUser.alias);
+
     const postText = `Endpoint smoke test ${new Date().toISOString()}`;
     const timestamp = Date.now();
     const status = {
@@ -404,7 +417,11 @@ async function main() {
       user_alias: currentUser.alias,
       timestamp,
     });
-    const postResponse = await test("post status", "/post-status", {
+    trackCleanup(TABLES.feed, {
+      feed_user_alias: targetUser.alias,
+      timestamp,
+    });
+    await test("post status", "/post-status", {
       token,
       status,
     });
@@ -431,27 +448,12 @@ async function main() {
       },
     );
 
-    if (postResponse !== null) {
-      await putTrackedItem(
-        TABLES.feed,
-        {
-          feed_user_alias: currentUser.alias,
-          status_user_alias: currentUser.alias,
-          timestamp,
-        },
-        {
-          feed_user_alias: currentUser.alias,
-          timestamp,
-        },
-      );
-    }
-
     await test(
       "load feed items",
       "/feed-items",
       {
         token,
-        userAlias: currentUser.alias,
+        userAlias: targetUser.alias,
         pageSize: 10,
         lastItem: null,
       },
